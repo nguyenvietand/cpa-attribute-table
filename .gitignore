@@ -1,0 +1,23 @@
+# Dependency directories
+node_modules/
+
+# Build outputs
+out/
+bin/
+obj/
+
+# IDEs and editors
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Log files
+*.log

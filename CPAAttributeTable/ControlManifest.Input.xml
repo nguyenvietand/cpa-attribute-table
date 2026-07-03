@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest>
+  <control
+    namespace="CPAAttribute"
+    constructor="CPAAttributeTableControl"
+    version="0.0.1"
+    display-name-key="CPAAttributeTable"
+    description-key="CPAAttributeTable_Desc"
+    control-type="standard"
+  >
+
+    <external-service-usage enabled="false"></external-service-usage>
+    <property name="font" display-name-key="Font" description-key="Font_Desc" usage="input" of-type="SingleLine.Text" required="false" />
+    <property name="dataJSON" display-name-key="DataJSON" description-key="DataJSON_Desc" usage="input" of-type="SingleLine.Text" required="false" />
+    <property name="defaultTableName" display-name-key="DefaultTableName" description-key="DefaultTableName_Desc" usage="input" of-type="SingleLine.Text" required="false" />
+
+    <data-set name="tableNameInputList" display-name-key="TableNameInputList">
+      <property-set name="Value" display-name-key="Value" of-type="SingleLine.Text" usage="bound" required="false" />
+    </data-set>
+
+    <data-set name="evidenceFileInputList" display-name-key="EvidenceFileInputList">
+      <property-set name="Title" display-name-key="Title" of-type="SingleLine.Text" usage="bound" required="false" />
+    </data-set>
+
+    <property name="dataJSONOutput" display-name-key="DataJSONOutput" description-key="DataJSONOutput_Desc" usage="bound" of-type="SingleLine.Text" required="false" />
+
+    <resources>
+      <code path="index.ts" order="1" />
+      <css path="css/TailwindCompat.css" order="1" />
+      <css path="css/CPAAttributeTable.css" order="2" />
+    </resources>
+  </control>
+</manifest>

@@ -1,0 +1,601 @@
+{
+  "cells": [
+    {
+      "ColumnName": "Sample ID",
+      "Id": 1,
+      "Order": 1,
+      "Value": "1",
+      "WP_ID": 226
+    },
+    {
+      "ColumnName": "On Tuesday and Friday (Weekly), did a Consumer Loan Card Operations (CLCO) team member complete a review of the BAU Zero Principal Balance Due report? (Y; N)",
+      "Id": 1,
+      "Order": 2,
+      "Value": "Pass",
+      "WP_ID": 226
+    },
+    {
+      "ColumnName": "Did the team member pull the report from the previous day to ensure no accounts on the report are greater than 25 days past end of draw or last payment whichever brought account to a zero balance? (Y; N)",
+      "Id": 1,
+      "Order": 3,
+      "Value": "Pass",
+      "WP_ID": 226
+    },
+    {
+      "ColumnName": "If an issue is identified, was an escalation email sent to the Payment Processing team member for review and resolution? (Y; N; N/A= No issues identified)",
+      "Id": 1,
+      "Order": 4,
+      "Value": "N/A",
+      "WP_ID": 226
+    },
+    {
+      "ColumnName": "Supporting Evidence per Attribute",
+      "Id": 1,
+      "Order": 1001,
+      "Value": "BAU 0_Prin_Bal_Due_020524 (Sample 1).xlsx;BAU 0_Prin_Bal_Due_020824 (Sample 1.1).xlsx;QC - Zero Balance Account Execution Summary.xlsx;Att4.docx",
+      "WP_ID": 226
+    },
+    {
+      "ColumnName": "Control Sample Assessment Result (Pass/Fail)",
+      "Id": 1,
+      "Order": 1002,
+      "Value": "Pass",
+      "WP_ID": 226
+    },
+    {
+      "ColumnName": "Comment",
+      "Id": 1,
+      "Order": 1003,
+      "Value": "",
+      "WP_ID": 226
+    },
+    {
+      "ColumnName": "Sample ID",
+      "Id": -1,
+      "Order": 1,
+      "Value": "2",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "On Tuesday and Friday (Weekly), did a Consumer Loan Card Operations (CLCO) team member complete a review of the BAU Zero Principal Balance Due report? (Y; N)",
+      "Id": -1,
+      "Order": 2,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Did the team member pull the report from the previous day to ensure no accounts on the report are greater than 25 days past end of draw or last payment whichever brought account to a zero balance? (Y; N)",
+      "Id": -1,
+      "Order": 3,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "If an issue is identified, was an escalation email sent to the Payment Processing team member for review and resolution? (Y; N; N/A= No issues identified)",
+      "Id": -1,
+      "Order": 4,
+      "Value": "N/A",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Supporting Evidence per Attribute",
+      "Id": -1,
+      "Order": 1001,
+      "Value": "QC - Zero Balance Account Execution Summary.xlsx;BAU 0_Prin_Bal_Due_022924 Sample 2.xlsx;BAU 0_Prin_Bal_Due_022624 Sample 2.msg;BAU 0_Prin_Bal_Due_022624 Sample 2.xlsx",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Control Sample Assessment Result (Pass/Fail)",
+      "Id": -1,
+      "Order": 1002,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Comment",
+      "Id": -1,
+      "Order": 1003,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Sample ID",
+      "Id": -2,
+      "Order": 1,
+      "Value": "3",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "On Tuesday and Friday (Weekly), did a Consumer Loan Card Operations (CLCO) team member complete a review of the BAU Zero Principal Balance Due report? (Y; N)",
+      "Id": -2,
+      "Order": 2,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Did the team member pull the report from the previous day to ensure no accounts on the report are greater than 25 days past end of draw or last payment whichever brought account to a zero balance? (Y; N)",
+      "Id": -2,
+      "Order": 3,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "If an issue is identified, was an escalation email sent to the Payment Processing team member for review and resolution? (Y; N; N/A= No issues identified)",
+      "Id": -2,
+      "Order": 4,
+      "Value": "N/A",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Supporting Evidence per Attribute",
+      "Id": -2,
+      "Order": 1001,
+      "Value": "Att4.docx;QC - Zero Balance Account Execution Summary.xlsx;BAU 0_Prin_Bal_Due_030424 Sample 3.xlsx;BAU 0_Prin_Bal_Due_030424 Sample 3.msg;BAU 0_Prin_Bal_Due_030724 Sample 3.xlsx",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Control Sample Assessment Result (Pass/Fail)",
+      "Id": -2,
+      "Order": 1002,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Comment",
+      "Id": -2,
+      "Order": 1003,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Sample ID",
+      "Id": -3,
+      "Order": 1,
+      "Value": "4",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "On Tuesday and Friday (Weekly), did a Consumer Loan Card Operations (CLCO) team member complete a review of the BAU Zero Principal Balance Due report? (Y; N)",
+      "Id": -3,
+      "Order": 2,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Did the team member pull the report from the previous day to ensure no accounts on the report are greater than 25 days past end of draw or last payment whichever brought account to a zero balance? (Y; N)",
+      "Id": -3,
+      "Order": 3,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "If an issue is identified, was an escalation email sent to the Payment Processing team member for review and resolution? (Y; N; N/A= No issues identified)",
+      "Id": -3,
+      "Order": 4,
+      "Value": "N/A",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Supporting Evidence per Attribute",
+      "Id": -3,
+      "Order": 1001,
+      "Value": "BAU 0_Prin_Bal_Due_051324 Sample 4.xlsx;BAU 0_Prin_Bal_Due_051624 Sample 4.msg;BAU 0_Prin_Bal_Due_051624 Sample 4.xlsx;Att4.docx;QC - Zero Balance Account Execution Summary.xlsx",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Control Sample Assessment Result (Pass/Fail)",
+      "Id": -3,
+      "Order": 1002,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Comment",
+      "Id": -3,
+      "Order": 1003,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Sample ID",
+      "Id": -4,
+      "Order": 1,
+      "Value": "5",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "On Tuesday and Friday (Weekly), did a Consumer Loan Card Operations (CLCO) team member complete a review of the BAU Zero Principal Balance Due report? (Y; N)",
+      "Id": -4,
+      "Order": 2,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Did the team member pull the report from the previous day to ensure no accounts on the report are greater than 25 days past end of draw or last payment whichever brought account to a zero balance? (Y; N)",
+      "Id": -4,
+      "Order": 3,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "If an issue is identified, was an escalation email sent to the Payment Processing team member for review and resolution? (Y; N; N/A= No issues identified)",
+      "Id": -4,
+      "Order": 4,
+      "Value": "N/A",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Supporting Evidence per Attribute",
+      "Id": -4,
+      "Order": 1001,
+      "Value": "Att4.docx;QC - Zero Balance Account Execution Summary.xlsx;BAU 0_Prin_Bal_Due_060624 Sample 5.xlsx;BAU 0_Prin_Bal_Due_060324 Sample 5.xlsx",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Control Sample Assessment Result (Pass/Fail)",
+      "Id": -4,
+      "Order": 1002,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Comment",
+      "Id": -4,
+      "Order": 1003,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Sample ID",
+      "Id": -5,
+      "Order": 1,
+      "Value": "6",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "On Tuesday and Friday (Weekly), did a Consumer Loan Card Operations (CLCO) team member complete a review of the BAU Zero Principal Balance Due report? (Y; N)",
+      "Id": -5,
+      "Order": 2,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Did the team member pull the report from the previous day to ensure no accounts on the report are greater than 25 days past end of draw or last payment whichever brought account to a zero balance? (Y; N)",
+      "Id": -5,
+      "Order": 3,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "If an issue is identified, was an escalation email sent to the Payment Processing team member for review and resolution? (Y; N; N/A= No issues identified)",
+      "Id": -5,
+      "Order": 4,
+      "Value": "N/A",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Supporting Evidence per Attribute",
+      "Id": -5,
+      "Order": 1001,
+      "Value": "BAU 0_Prin_Bal_Due_071524 Sample 6.xlsx;BAU 0_Prin_Bal_Due_071824 Sample 6.xlsx;Att4.docx;QC - Zero Balance Account Execution Summary.xlsx",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Control Sample Assessment Result (Pass/Fail)",
+      "Id": -5,
+      "Order": 1002,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Comment",
+      "Id": -5,
+      "Order": 1003,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Sample ID",
+      "Id": -6,
+      "Order": 1,
+      "Value": "7",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "On Tuesday and Friday (Weekly), did a Consumer Loan Card Operations (CLCO) team member complete a review of the BAU Zero Principal Balance Due report? (Y; N)",
+      "Id": -6,
+      "Order": 2,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Did the team member pull the report from the previous day to ensure no accounts on the report are greater than 25 days past end of draw or last payment whichever brought account to a zero balance? (Y; N)",
+      "Id": -6,
+      "Order": 3,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "If an issue is identified, was an escalation email sent to the Payment Processing team member for review and resolution? (Y; N; N/A= No issues identified)",
+      "Id": -6,
+      "Order": 4,
+      "Value": "N/A",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Supporting Evidence per Attribute",
+      "Id": -6,
+      "Order": 1001,
+      "Value": "BAU 0_Prin_Bal_Due_080824 Sample 7.xlsx;Att4.docx;QC - Zero Balance Account Execution Summary.xlsx;BAU 0_Prin_Bal_Due_080524 Sample 7.xlsx",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Control Sample Assessment Result (Pass/Fail)",
+      "Id": -6,
+      "Order": 1002,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Comment",
+      "Id": -6,
+      "Order": 1003,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Sample ID",
+      "Id": -7,
+      "Order": 1,
+      "Value": "8",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "On Tuesday and Friday (Weekly), did a Consumer Loan Card Operations (CLCO) team member complete a review of the BAU Zero Principal Balance Due report? (Y; N)",
+      "Id": -7,
+      "Order": 2,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Did the team member pull the report from the previous day to ensure no accounts on the report are greater than 25 days past end of draw or last payment whichever brought account to a zero balance? (Y; N)",
+      "Id": -7,
+      "Order": 3,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "If an issue is identified, was an escalation email sent to the Payment Processing team member for review and resolution? (Y; N; N/A= No issues identified)",
+      "Id": -7,
+      "Order": 4,
+      "Value": "N/A",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Supporting Evidence per Attribute",
+      "Id": -7,
+      "Order": 1001,
+      "Value": "Att4.docx;QC - Zero Balance Account Execution Summary.xlsx;BAU 0_Prin_Bal_Due_083024 Sample 8.xlsx;BAU 0_Prin_Bal_Due_090524 Sample 8.xlsx",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Control Sample Assessment Result (Pass/Fail)",
+      "Id": -7,
+      "Order": 1002,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Comment",
+      "Id": -7,
+      "Order": 1003,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Sample ID",
+      "Id": -8,
+      "Order": 1,
+      "Value": "9",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "On Tuesday and Friday (Weekly), did a Consumer Loan Card Operations (CLCO) team member complete a review of the BAU Zero Principal Balance Due report? (Y; N)",
+      "Id": -8,
+      "Order": 2,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Did the team member pull the report from the previous day to ensure no accounts on the report are greater than 25 days past end of draw or last payment whichever brought account to a zero balance? (Y; N)",
+      "Id": -8,
+      "Order": 3,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "If an issue is identified, was an escalation email sent to the Payment Processing team member for review and resolution? (Y; N; N/A= No issues identified)",
+      "Id": -8,
+      "Order": 4,
+      "Value": "N/A",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Supporting Evidence per Attribute",
+      "Id": -8,
+      "Order": 1001,
+      "Value": "Att4.docx;QC - Zero Balance Account Execution Summary.xlsx;BAU 0_Prin_Bal_Due_092324 Sample 9.xlsx;BAU 0_Prin_Bal_Due_092624 Sample 9.xlsx",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Control Sample Assessment Result (Pass/Fail)",
+      "Id": -8,
+      "Order": 1002,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Comment",
+      "Id": -8,
+      "Order": 1003,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Sample ID",
+      "Id": -9,
+      "Order": 1,
+      "Value": "10",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "On Tuesday and Friday (Weekly), did a Consumer Loan Card Operations (CLCO) team member complete a review of the BAU Zero Principal Balance Due report? (Y; N)",
+      "Id": -9,
+      "Order": 2,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Did the team member pull the report from the previous day to ensure no accounts on the report are greater than 25 days past end of draw or last payment whichever brought account to a zero balance? (Y; N)",
+      "Id": -9,
+      "Order": 3,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "If an issue is identified, was an escalation email sent to the Payment Processing team member for review and resolution? (Y; N; N/A= No issues identified)",
+      "Id": -9,
+      "Order": 4,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Supporting Evidence per Attribute",
+      "Id": -9,
+      "Order": 1001,
+      "Value": "BAU 0_Prin_Bal_Due_122324 Sample 10.xlsx;BAU 0_Prin_Bal_Due_122324 Sample 10.msg;BAU 0_Prin_Bal_Due_122624 10.xlsx;BAU 0_Prin_Bal_Due_122624 EP 10.xlsx;Att4.docx;QC - Zero Balance Account Execution Summary.xlsx",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Control Sample Assessment Result (Pass/Fail)",
+      "Id": -9,
+      "Order": 1002,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Comment",
+      "Id": -9,
+      "Order": 1003,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Was evidence of control execution (i.e. spreadsheets, reports, notes, emails) and escalation documentation maintained in the shared network drive? (Y; N)",
+      "Id": 1,
+      "Order": 5,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Was evidence of control execution (i.e. spreadsheets, reports, notes, emails) and escalation documentation maintained in the shared network drive? (Y; N)",
+      "Id": -1,
+      "Order": 5,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Was evidence of control execution (i.e. spreadsheets, reports, notes, emails) and escalation documentation maintained in the shared network drive? (Y; N)",
+      "Id": -2,
+      "Order": 5,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Was evidence of control execution (i.e. spreadsheets, reports, notes, emails) and escalation documentation maintained in the shared network drive? (Y; N)",
+      "Id": -3,
+      "Order": 5,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Was evidence of control execution (i.e. spreadsheets, reports, notes, emails) and escalation documentation maintained in the shared network drive? (Y; N)",
+      "Id": -4,
+      "Order": 5,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Was evidence of control execution (i.e. spreadsheets, reports, notes, emails) and escalation documentation maintained in the shared network drive? (Y; N)",
+      "Id": -5,
+      "Order": 5,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Was evidence of control execution (i.e. spreadsheets, reports, notes, emails) and escalation documentation maintained in the shared network drive? (Y; N)",
+      "Id": -6,
+      "Order": 5,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Was evidence of control execution (i.e. spreadsheets, reports, notes, emails) and escalation documentation maintained in the shared network drive? (Y; N)",
+      "Id": -7,
+      "Order": 5,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Was evidence of control execution (i.e. spreadsheets, reports, notes, emails) and escalation documentation maintained in the shared network drive? (Y; N)",
+      "Id": -8,
+      "Order": 5,
+      "Value": "Pass",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Was evidence of control execution (i.e. spreadsheets, reports, notes, emails) and escalation documentation maintained in the shared network drive? (Y; N)",
+      "Id": -9,
+      "Order": 5,
+      "Value": "Pass",
+      "WP_ID": null
+    }
+  ],
+  "headers": [
+    { "ColumnName": "Sample ID", "Order": 1 },
+    {
+      "ColumnName": "On Tuesday and Friday (Weekly), did a Consumer Loan Card Operations (CLCO) team member complete a review of the BAU Zero Principal Balance Due report? (Y; N)",
+      "Order": 2
+    },
+    {
+      "ColumnName": "Did the team member pull the report from the previous day to ensure no accounts on the report are greater than 25 days past end of draw or last payment whichever brought account to a zero balance? (Y; N)",
+      "Order": 3
+    },
+    {
+      "ColumnName": "If an issue is identified, was an escalation email sent to the Payment Processing team member for review and resolution? (Y; N; N/A= No issues identified)",
+      "Order": 4
+    },
+    { "ColumnName": "Supporting Evidence per Attribute", "Order": 1001 },
+    {
+      "ColumnName": "Control Sample Assessment Result (Pass/Fail)",
+      "Order": 1002
+    },
+    { "ColumnName": "Comment", "Order": 1003 },
+    {
+      "ColumnName": "Was evidence of control execution (i.e. spreadsheets, reports, notes, emails) and escalation documentation maintained in the shared network drive? (Y; N)",
+      "Order": 5
+    }
+  ],
+  "rows": [
+    { "Id": 1 },
+    { "Id": -1 },
+    { "Id": -2 },
+    { "Id": -3 },
+    { "Id": -4 },
+    { "Id": -5 },
+    { "Id": -6 },
+    { "Id": -7 },
+    { "Id": -8 },
+    { "Id": -9 }
+  ]
+}
