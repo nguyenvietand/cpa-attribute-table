@@ -193,10 +193,11 @@ export default function TableGrid({
                   }}
                   className="sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 align-middle resize-">
                   <div className="flex items-center gap-1.5 justify-center">
-                    <AddIcon
-                      sx={{ fontSize: 16 }}
-                      className="text-[#C00000] hover:text-green-800 cursor-pointer shrink-0"
-                      onClick={() => {
+                    <button
+                      type="button"
+                      className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
                         onAddRow();
                         setTimeout(() => {
                           if (containerRef.current) {
@@ -207,7 +208,9 @@ export default function TableGrid({
                           }
                         }, 50);
                       }}
-                    />
+                    >
+                      <AddIcon sx={{ fontSize: 16 }} className="text-[#C00000] hover:text-green-800" />
+                    </button>
                     <input
                       type="checkbox"
                       checked={
@@ -281,16 +284,16 @@ export default function TableGrid({
                     <div className="relative flex flex-col w-full">
                       <div className="flex items-center justify-between w-full pr-4">
                         <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                        <button
-                          type="button"
-                          onClick={() => onDeleteAttribute(attr.id)}
-                          className="text-[#C00000] hover:text-[#900000] cursor-pointer flex items-center justify-center shrink-0"
-                          title={`Delete ${attr.name}`}>
-                          <DeleteIcon sx={{ fontSize: 14 }} />
-                        </button>
-                        <span className="text-xs font-bold text-gray-800 px-1 py-0.5 normal-case select-none truncate">
-                          {attr.name}
-                        </span>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteAttribute(attr.id)}
+                            className="text-[#C00000] hover:text-[#900000] cursor-pointer flex items-center justify-center shrink-0"
+                            title={`Delete ${attr.name}`}>
+                            <DeleteIcon sx={{ fontSize: 14 }} />
+                          </button>
+                          <span className="text-xs font-bold text-gray-800 px-1 py-0.5 normal-case select-none truncate">
+                            {attr.name}
+                          </span>
                         </div>
                       </div>
                       <textarea
@@ -425,23 +428,27 @@ export default function TableGrid({
                         : <div className="flex items-center h-10 px-2 gap-1.5 text-gray-400 w-full">
                           <div className="flex items-center gap-1 shrink-0">
                             {/* Edit pencil icon */}
-                            <EditIcon
-                              sx={{ fontSize: 14, color: "red" }}
-                              className="hover:text-blue-650 cursor-pointer"
+                            <button
+                              type="button"
+                              className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onEditClick(row);
                               }}
-                            />
+                            >
+                              <EditIcon sx={{ fontSize: 14, color: "red" }} />
+                            </button>
                             {/* Trash icon */}
-                            <DeleteIcon
-                              sx={{ fontSize: 14, color: "red" }}
-                              className="hover:text-red-650 cursor-pointer"
+                            <button
+                              type="button"
+                              className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onDeleteRow(row.id);
                               }}
-                            />
+                            >
+                              <DeleteIcon sx={{ fontSize: 14, color: "red" }} />
+                            </button>
                           </div>
                           <input
                             type="text"
