@@ -24,6 +24,8 @@
 
     <property name="dataJSONOutput" display-name-key="DataJSONOutput" description-key="DataJSONOutput_Desc" usage="bound" of-type="SingleLine.Text" required="false" />
 
+    <event name="OnDelete" display-name-key="On Delete" description-key="OnDelete_DESC" />
+
     <resources>
       <code path="index.ts" order="1" />
       <css path="css/TailwindCompat.css" order="1" />

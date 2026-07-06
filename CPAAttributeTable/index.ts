@@ -53,6 +53,14 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
         const width = Number.isFinite(allocatedWidth) && allocatedWidth > 0 ? allocatedWidth : 1200;
         const height = Number.isFinite(allocatedHeight) && allocatedHeight > 0 ? allocatedHeight : 700;
 
+        const onDeleteAction = () => {
+            console.log('Delete action triggered');
+            const currentContext = this.context as any;
+            if (currentContext && currentContext.events) {
+                currentContext.events.OnDelete();
+            }
+        };
+
         this.root.render(
             React.createElement(CPAAttributeTableApp, {
                 width,
@@ -67,6 +75,7 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
                     this.dataJSONOutput = nextOutputJson;
                     this.notifyOutputChanged?.();
                 },
+                onDeleteAction,
             }),
         );
     }

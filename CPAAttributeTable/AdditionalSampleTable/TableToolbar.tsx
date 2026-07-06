@@ -17,6 +17,7 @@ interface TableToolbarProps {
   tableNames: string[];
   selectedTableName: string;
   onSelectedTableNameChange: (value: string) => void;
+  onDeleteAction?: () => void;
 }
 
 export default function TableToolbar({
@@ -28,6 +29,7 @@ export default function TableToolbar({
   tableNames,
   selectedTableName,
   onSelectedTableNameChange,
+  onDeleteAction,
 }: TableToolbarProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-white border-b border-gray-200">
@@ -57,11 +59,10 @@ export default function TableToolbar({
           type="button"
           onClick={onCopySelection}
           disabled={!hasSelection}
-          className={`flex items-center gap-1 border px-3 py-1.5 rounded text-xs font-semibold active:scale-[0.98] transition-all cursor-pointer shadow-2xs ${
-            hasSelection ?
+          className={`flex items-center gap-1 border px-3 py-1.5 rounded text-xs font-semibold active:scale-[0.98] transition-all cursor-pointer shadow-2xs ${hasSelection ?
               "border-emerald-300 text-emerald-700 bg-emerald-50/30 hover:bg-emerald-50"
-            : "border-gray-200 text-gray-450 bg-gray-50/50 cursor-not-allowed"
-          }`}
+              : "border-gray-200 text-gray-450 bg-gray-50/50 cursor-not-allowed"
+            }`}
           title="Copy selected cells to clipboard">
           <ContentCopyIcon sx={{ fontSize: 14 }} />
           <span>Copy Selection</span>
@@ -101,7 +102,13 @@ export default function TableToolbar({
         <button
           type="button"
           className="p-1.5 text-gray-455 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer flex items-center justify-center"
-          title="Delete Section">
+          title="Delete Section"
+          onClick={() => {
+            if (onDeleteAction) {
+              onDeleteAction();
+            }
+          }}
+        >
           <DeleteIcon sx={{ fontSize: 16 }} />
         </button>
       </div>

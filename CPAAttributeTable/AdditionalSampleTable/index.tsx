@@ -48,6 +48,7 @@ interface AdditionalSampleTableProps {
       comment: string;
     };
   }) => void;
+  onDeleteAction?: () => void;
   maxHeight?: string | number;
   columnWidths?: ColumnWidths;
 }
@@ -75,6 +76,7 @@ export default function AdditionalSampleTable({
   initialColumnHeaders,
   initialEvidenceOptions,
   onDataChange,
+  onDeleteAction,
   maxHeight,
   columnWidths,
 }: AdditionalSampleTableProps) {
@@ -209,6 +211,7 @@ export default function AdditionalSampleTable({
             tableNames={initialTableNames}
             selectedTableName={selectedTableName}
             onSelectedTableNameChange={setSelectedTableName}
+            onDeleteAction={onDeleteAction}
           />
 
           {/* Table Grid rows */}

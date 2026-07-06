@@ -30,7 +30,7 @@ export default function EditRowDialog({
   const [attrValues, setAttrValues] = useState<Record<string, string>>(() => {
     const initialValues: Record<string, string> = {};
     attributes.forEach((attr) => {
-      initialValues[attr.id] = row.attributes[attr.id] || "N/A";
+      initialValues[attr.id] = row.attributes[attr.id] || "";
     });
     return initialValues;
   });
@@ -83,11 +83,10 @@ export default function EditRowDialog({
                 setWeek(e.target.value);
                 if (e.target.value.trim()) setErrorWeek(false);
               }}
-              className={`w-full text-sm font-medium border rounded px-3 py-2 focus:outline-none focus:ring-1 ${
-                errorWeek ?
+              className={`w-full text-sm font-medium border rounded px-3 py-2 focus:outline-none focus:ring-1 ${errorWeek ?
                   "border-red-500 focus:ring-red-500 focus:border-red-500"
-                : "border-gray-300 focus:border-gray-400 focus:ring-gray-400"
-              }`}
+                  : "border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+                }`}
             />
             {errorWeek && (
               <span className="text-xs text-red-500">
@@ -109,26 +108,17 @@ export default function EditRowDialog({
                     title={attr.name}>
                     {attr.name}
                   </label>
-                  <select
-                    value={attrValues[attr.id] || "N/A"}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                      const val = e.target.value as "Pass" | "Fail" | "N/A";
+                  <input
+                    type="text"
+                    value={attrValues[attr.id] || ""}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       setAttrValues({
                         ...attrValues,
-                        [attr.id]: val,
+                        [attr.id]: e.target.value,
                       });
                     }}
-                    className="w-full text-xs font-semibold border border-gray-300 rounded px-2.5 py-1.5 focus:outline-none focus:border-gray-450 bg-white">
-                    <option value="Pass" className="text-emerald-700">
-                      Pass
-                    </option>
-                    <option value="Fail" className="text-red-700">
-                      Fail
-                    </option>
-                    <option value="N/A" className="text-gray-600">
-                      N/A
-                    </option>
-                  </select>
+                    className="w-full text-xs font-medium border border-gray-300 rounded px-2.5 py-1.5 focus:outline-none focus:border-gray-400 bg-white"
+                  />
                 </div>
               ))}
             </div>

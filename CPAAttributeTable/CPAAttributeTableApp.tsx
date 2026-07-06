@@ -11,6 +11,7 @@ interface CPAAttributeTableAppProps {
     tableNameOptions: string[];
     evidenceFileOptions: string[];
     onDataChange?: (jsonValue: string) => void;
+    onDeleteAction?: () => void;
 }
 
 interface DataCell {
@@ -314,6 +315,7 @@ export default function CPAAttributeTableApp({
     tableNameOptions,
     evidenceFileOptions,
     onDataChange,
+    onDeleteAction,
 }: CPAAttributeTableAppProps): React.JSX.Element {
     const tableMaxHeight = Math.max(220, height - 120);
     const parsedState = React.useMemo(() => buildInitialState(dataJSONString), [dataJSONString]);
@@ -343,6 +345,7 @@ export default function CPAAttributeTableApp({
                         initialTableNames={tableNameOptions}
                         initialSelectedTableName={defaultTableName}
                         onDataChange={handleTableDataChange}
+                        onDeleteAction={onDeleteAction}
                         maxHeight={tableMaxHeight}
                     />
                 </div>
