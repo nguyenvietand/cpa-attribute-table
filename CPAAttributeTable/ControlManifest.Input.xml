@@ -11,7 +11,7 @@
 
     <external-service-usage enabled="false"></external-service-usage>
     <property name="font" display-name-key="Font" description-key="Font_Desc" usage="input" of-type="SingleLine.Text" required="false" />
-    <property name="maxHeight" display-name-key="Font" description-key="Font_Desc" usage="input" of-type="Whole.None" required="false" />
+    <property name="maxHeight" display-name-key="MaxHeight" description-key="Font_Desc" usage="bound" of-type="Whole.None" required="false" />
     <property name="dataJSON" display-name-key="DataJSON" description-key="DataJSON_Desc" usage="input" of-type="SingleLine.Text" required="false" />
     <property name="defaultTableName" display-name-key="DefaultTableName" description-key="DefaultTableName_Desc" usage="input" of-type="SingleLine.Text" required="false" />
 
