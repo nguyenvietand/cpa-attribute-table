@@ -25,6 +25,7 @@ export default function EvidenceMultiSelect({
   onOpenChange,
 }: EvidenceMultiSelectProps) {
   const [internalOpen, setInternalOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState(""); // 1. Khởi tạo state lưu từ khóa search
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   const dropdownRef = React.useRef<HTMLDivElement | null>(null);
   const selectedValues = React.useMemo(() => splitEvidenceValue(value), [value]);
@@ -41,6 +42,20 @@ export default function EvidenceMultiSelect({
     },
     [isControlled, onOpenChange],
   );
+
+  // 2. Reset lại ô search về rỗng mỗi khi đóng dropdown
+  React.useEffect(() => {
+    if (!isOpen) {
+      setSearchQuery("");
+    }
+  }, [isOpen]);
+
+  // 3. Thực hiện lọc danh sách options theo từ khóa nhập vào
+  const filteredOptions = React.useMemo(() => {
+    return options.filter((option) =>
+      option.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [options, searchQuery]);
 
   React.useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -112,9 +127,26 @@ export default function EvidenceMultiSelect({
         <div
           ref={dropdownRef}
           style={dropdownStyle}
-          className="rounded border border-gray-300 bg-white shadow-lg">
+          // Thêm flex flex-col và overflow-hidden để ô search cố định ở top, chỉ scroll list option bên dưới
+          className="rounded border border-gray-300 bg-white shadow-lg overflow-hidden flex flex-col">
+          
+          {/* 4. THANH CHỨA Ô INPUT TÌM KIẾM */}
+          <div 
+            className="p-1.5 border-b border-gray-100 bg-gray-50"
+            onMouseDown={(e) => e.stopPropagation()} // Chặn sự kiện mousedown lan ra bảng làm mất active cell
+          >
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white text-gray-700"
+            />
+          </div>
+
+          {/* LIST OPTIONS (Đã đổi từ options sang filteredOptions) */}
           <div className="max-h-44 overflow-y-auto py-1">
-            {options.map((option) => (
+            {filteredOptions.map((option) => (
               <button
                 key={option}
                 type="button"
@@ -132,8 +164,12 @@ export default function EvidenceMultiSelect({
                 {option}
               </button>
             ))}
-            {options.length === 0 && (
-              <div className="px-3 py-2 text-xs text-gray-500">No files available</div>
+            
+            {/* 5. HIỂN THỊ TRẠNG THÁI KHÔNG CÓ KẾT QUẢ */}
+            {filteredOptions.length === 0 && (
+              <div className="px-3 py-3 text-xs text-gray-400 text-center italic">
+                {options.length === 0 ? "No files available" : "No matches found"}
+              </div>
             )}
           </div>
         </div>,

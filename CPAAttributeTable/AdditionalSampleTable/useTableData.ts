@@ -763,12 +763,7 @@ export function useTableData({
 
   // Calculate statistics
   const totalSamples = rows.length;
-  const totalErrors = rows.filter((row) => {
-    const hasFailAttr = attributes.some(
-      (attr) => row.attributes[attr.id] === "Fail",
-    );
-    return hasFailAttr || row.result === "Fail";
-  }).length;
+  const totalErrors = rows.filter((row) => row.result === "Fail").length;
 
   return {
     isExpanded,

@@ -1,7 +1,7 @@
 "use client";
 import { SampleRow, Attribute } from "./mockData";
 export type { SampleRow, Attribute };
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
@@ -49,15 +49,16 @@ interface AdditionalSampleTableProps {
     };
   }) => void;
   onDeleteAction?: () => void;
+  onTableNameChange?: (name: string) => void;
+  onTotalSampleChange?: (total: number) => void;
+  onTotalErrorChange?: (errors: number) => void;
+  onHeightChange?: (height: number) => void;
   maxHeight?: string | number;
   columnWidths?: ColumnWidths;
 }
 
-/* DEFAULT TABLE LAYOUT CONFIGURATION */
 const DEFAULT_TABLE_CONFIG = {
-  // Set the maximum height of the table body
   maxHeight: 400,
-  // Set the width (in pixels) for each column in the table
   columnWidths: {
     order: 50,
     week: 140,
@@ -77,10 +78,13 @@ export default function AdditionalSampleTable({
   initialEvidenceOptions,
   onDataChange,
   onDeleteAction,
+  onTableNameChange,
+  onTotalSampleChange,
+  onTotalErrorChange,
+  onHeightChange,
   maxHeight,
   columnWidths,
 }: AdditionalSampleTableProps) {
-  // Table Core
   const {
     isExpanded,
     setIsExpanded,
@@ -116,7 +120,6 @@ export default function AdditionalSampleTable({
     handleAddDefaultRow,
   } = useTableData({ initialRows, initialAttributes, initialColumnHeaders, initialEvidenceOptions });
 
-  // Table selection and copy hook
   const {
     selectedRowIds,
     hasSelection,
@@ -134,8 +137,9 @@ export default function AdditionalSampleTable({
     activeRowId,
   });
 
-  //  layout configuration from props or DEFAULT_TABLE_CONFIG
   const resolvedMaxHeight = maxHeight ?? DEFAULT_TABLE_CONFIG.maxHeight;
+
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const [prevColumnWidths, setPrevColumnWidths] = React.useState(columnWidths);
   const [currentColumnWidths, setCurrentColumnWidths] =
@@ -152,24 +156,47 @@ export default function AdditionalSampleTable({
     }));
   }
 
-  const resolveSelectedTableName = React.useCallback(() => {
+  const [prevInitialSelectedTableName, setPrevInitialSelectedTableName] = React.useState(initialSelectedTableName);
+  const [selectedTableName, setSelectedTableName] = React.useState(() => {
+    const normalizedDefault = (initialSelectedTableName || "").trim();
+    if (normalizedDefault && initialTableNames.includes(normalizedDefault)) return normalizedDefault;
+    return initialTableNames.length > 0 ? initialTableNames[0] : "";
+  });
+
+  if (initialSelectedTableName !== prevInitialSelectedTableName) {
+    setPrevInitialSelectedTableName(initialSelectedTableName);
     const normalizedDefault = (initialSelectedTableName || "").trim();
     if (normalizedDefault && initialTableNames.includes(normalizedDefault)) {
-      return normalizedDefault;
+      setSelectedTableName(normalizedDefault);
+    } else if (initialTableNames.length > 0) {
+      setSelectedTableName(initialTableNames[0]);
     }
-    if (initialTableNames.length > 0) {
-      return initialTableNames[0];
-    }
-    return "";
-  }, [initialSelectedTableName, initialTableNames]);
+  }
 
-  const [selectedTableName, setSelectedTableName] = React.useState(
-    resolveSelectedTableName,
-  );
+  useEffect(() => {
+    if (!containerRef.current || !onHeightChange) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        onHeightChange(entry.contentRect.height);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [onHeightChange]);
 
   React.useEffect(() => {
-    setSelectedTableName(resolveSelectedTableName());
-  }, [resolveSelectedTableName]);
+    if (selectedTableName) {
+      onTableNameChange?.(selectedTableName);
+    }
+  }, [selectedTableName, onTableNameChange]);
+
+  React.useEffect(() => {
+    onTotalSampleChange?.(totalSamples);
+  }, [totalSamples, onTotalSampleChange]);
+
+  React.useEffect(() => {
+    onTotalErrorChange?.(totalErrors);
+  }, [totalErrors, onTotalErrorChange]);
 
   React.useEffect(() => {
     onDataChange?.({
@@ -180,7 +207,7 @@ export default function AdditionalSampleTable({
   }, [rows, attributes, columnHeaders, onDataChange]);
 
   return (
-    <div className="w-full flex flex-col">
+    <div ref={containerRef} className="w-full flex flex-col border! border-gray-200!">
       <Accordion
         expanded={isExpanded}
         onChange={() => setIsExpanded(!isExpanded)}
@@ -198,7 +225,6 @@ export default function AdditionalSampleTable({
             title={selectedTableName}
           />
         </AccordionSummary>
-        {/* end of accordion header*/}
         <AccordionDetails className="p-0! border-0!" sx={{ p: 0, borderTop: 0, display: 'flex', flexDirection: 'column' }}>
           <TableToolbar
             onAddRowClick={() => setIsAddRowOpen(true)}
@@ -214,7 +240,6 @@ export default function AdditionalSampleTable({
             onDeleteAction={onDeleteAction}
           />
 
-          {/* Table Grid rows */}
           <TableGrid
             rows={rows}
             attributes={attributes}
@@ -253,7 +278,6 @@ export default function AdditionalSampleTable({
             }}
           />
 
-          {/* Table Footer  */}
           <TableFooter />
         </AccordionDetails>
       </Accordion>
@@ -279,7 +303,6 @@ export default function AdditionalSampleTable({
         />
       )}
 
-      {/* Snackbar notification for clipboard events */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
