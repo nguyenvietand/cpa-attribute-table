@@ -6,6 +6,7 @@ interface CPAAttributeTableAppProps {
     width: number;
     height: number;
     font: string;
+    maxHeight?: number;
     dataJSONString: string;
     defaultTableName: string;
     tableNameOptions: string[];
@@ -313,6 +314,7 @@ export default function CPAAttributeTableApp({
     width,
     height,
     font,
+    maxHeight,
     dataJSONString,
     defaultTableName,
     tableNameOptions,
@@ -358,7 +360,7 @@ export default function CPAAttributeTableApp({
 
     return (
         <div
-            className='audit-table-skin flex flex-col'
+            className='audit-table-skin flex flex-col bg-white'
             style={{ width, height, overflow: 'hidden', fontFamily: font || undefined }}>
             <main className='flex-1 bg-gray-50/50' style={{ minHeight: 0, height: '100%' }}>
                 <div className='mx-auto' style={{ height: '100%', boxSizing: 'border-box' }}>
@@ -375,7 +377,7 @@ export default function CPAAttributeTableApp({
                         onTotalErrorChange={onTotalErrorChange}
                         onHeightChange={onHeightChange}
                         onDeleteAction={onDeleteAction}
-                        maxHeight={tableMaxHeight}
+                        maxHeight={maxHeight?? tableMaxHeight}
                     />
                 </div>
             </main>

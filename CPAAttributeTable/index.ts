@@ -99,6 +99,7 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
         const allocatedWidth = Number(this.context.mode.allocatedWidth);
         const allocatedHeight = Number(this.context.mode.allocatedHeight);
         const font = this.context.parameters.font.raw?.trim() ?? '';
+        const maxHeight = (this.context.parameters.maxHeight.raw ?? 715) - 115;
         const dataJSONString = this.context.parameters.dataJSON.raw ?? '';
         const defaultTableName = this.context.parameters.defaultTableName.raw ?? '';
         const tableNameOptions = this.getDatasetValues(this.context.parameters.tableNameInputList, 'Value');
@@ -120,6 +121,7 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
                 width,
                 height,
                 font,
+                maxHeight,
                 dataJSONString,
                 defaultTableName,
                 tableNameOptions,

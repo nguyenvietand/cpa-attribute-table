@@ -5,6 +5,7 @@
 // Define IInputs and IOutputs Type. They should match with ControlManifest.
 export interface IInputs {
     font: ComponentFramework.PropertyTypes.StringProperty;
+    maxHeight: ComponentFramework.PropertyTypes.WholeNumberProperty;
     dataJSON: ComponentFramework.PropertyTypes.StringProperty;
     defaultTableName: ComponentFramework.PropertyTypes.StringProperty;
     dataJSONOutput: ComponentFramework.PropertyTypes.StringProperty;
