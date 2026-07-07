@@ -13,4 +13,8 @@ export interface IInputs {
 }
 export interface IOutputs {
     dataJSONOutput?: string;
+    tableNameOutput?: string;
+    totalSampleOutput?: number;
+    totalErrorOutput?: number;
+    heightOutput?: number;
 }

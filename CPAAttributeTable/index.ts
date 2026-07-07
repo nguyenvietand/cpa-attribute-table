@@ -8,6 +8,10 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
     private context: ComponentFramework.Context<IInputs> | null = null;
     private notifyOutputChanged: (() => void) | null = null;
     private dataJSONOutput = '';
+    private tableNameOutput = '';
+    private totalSampleOutput = 0;
+    private totalErrorOutput = 0;
+    private heightOutput = 0;
 
     public init(
         context: ComponentFramework.Context<IInputs>,
@@ -30,6 +34,10 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
     public getOutputs(): IOutputs {
         return {
             dataJSONOutput: this.dataJSONOutput,
+            tableNameOutput: this.tableNameOutput,
+            totalSampleOutput: this.totalSampleOutput,
+            totalErrorOutput: this.totalErrorOutput,
+            heightOutput: Math.round(Number(this.heightOutput)) || 0,
         };
     }
 
@@ -38,6 +46,52 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
         this.root = null;
         this.notifyOutputChanged = null;
     }
+
+    private handleDeleteAction = () => {
+        console.log('Delete action triggered');
+        const currentContext = this.context as any;
+        if (currentContext && currentContext.events) {
+            currentContext.events.OnDelete();
+        }
+    };
+
+    private handleDataChange = (nextOutputJson: string) => {
+        console.log('Data change detected:', nextOutputJson);
+        if (nextOutputJson === this.dataJSONOutput) return;
+        this.dataJSONOutput = nextOutputJson;
+        this.notifyOutputChanged?.();
+    };
+
+    private handleTableNameChange = (nextTableName: string) => {
+        console.log('Table name change detected:', nextTableName);
+        if (nextTableName === this.tableNameOutput) return;
+        this.tableNameOutput = nextTableName;
+        this.notifyOutputChanged?.();
+    };
+
+    private handleTotalSampleChange = (nextTotalSample: number | string) => {
+        console.log('Total sample change detected:', nextTotalSample);
+        const val = Number(nextTotalSample);
+        if (val === this.totalSampleOutput) return;
+        this.totalSampleOutput = val;
+        this.notifyOutputChanged?.();
+    };
+
+    private handleTotalErrorChange = (nextTotalError: number | string) => {
+        console.log('Total error change detected:', nextTotalError);
+        const val = Number(nextTotalError);
+        if (val === this.totalErrorOutput) return;
+        this.totalErrorOutput = val;
+        this.notifyOutputChanged?.();
+    };
+
+    private handleHeightChange = (newHeight: number) => {
+        if (Math.round(newHeight) === this.heightOutput) return;
+
+        this.heightOutput = Math.round(newHeight);
+
+        this.notifyOutputChanged?.();
+    };
 
     private render(): void {
         if (!this.root || !this.context) return;
@@ -53,13 +107,13 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
         const width = Number.isFinite(allocatedWidth) && allocatedWidth > 0 ? allocatedWidth : 1200;
         const height = Number.isFinite(allocatedHeight) && allocatedHeight > 0 ? allocatedHeight : 700;
 
-        const onDeleteAction = () => {
-            console.log('Delete action triggered');
-            const currentContext = this.context as any;
-            if (currentContext && currentContext.events) {
-                currentContext.events.OnDelete();
-            }
-        };
+        // const onDeleteAction = () => {
+        //     console.log('Delete action triggered');
+        //     const currentContext = this.context as any;
+        //     if (currentContext && currentContext.events) {
+        //         currentContext.events.OnDelete();
+        //     }
+        // };
 
         this.root.render(
             React.createElement(CPAAttributeTableApp, {
@@ -70,12 +124,12 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
                 defaultTableName,
                 tableNameOptions,
                 evidenceFileOptions,
-                onDataChange: (nextOutputJson: string) => {
-                    if (nextOutputJson === this.dataJSONOutput) return;
-                    this.dataJSONOutput = nextOutputJson;
-                    this.notifyOutputChanged?.();
-                },
-                onDeleteAction,
+                onDeleteAction: this.handleDeleteAction,
+                onDataChange: this.handleDataChange,
+                onTableNameChange: this.handleTableNameChange,
+                onTotalSampleChange: this.handleTotalSampleChange,
+                onTotalErrorChange: this.handleTotalErrorChange,
+                onHeightChange: this.handleHeightChange,
             }),
         );
     }

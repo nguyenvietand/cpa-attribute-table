@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useRef, useEffect } from 'react';
 import SampleTable from './AdditionalSampleTable';
 import { Attribute, SampleRow } from './AdditionalSampleTable/mockData';
 
@@ -12,6 +12,10 @@ interface CPAAttributeTableAppProps {
     evidenceFileOptions: string[];
     onDataChange?: (jsonValue: string) => void;
     onDeleteAction?: () => void;
+    onTotalSampleChange?: (total: number) => void;
+    onTotalErrorChange?: (errors: number) => void;
+    onTableNameChange?: (name: string) => void;
+    onHeightChange?: (height: number) => void;
 }
 
 interface DataCell {
@@ -98,7 +102,6 @@ function buildInitialState(dataJSONString: string): {
     try {
         parsed = JSON.parse(dataJSONString) as InputDataJSON;
     } catch (error) {
-        console.warn('Invalid dataJSON input: unable to parse JSON string.', error);
         return emptyState;
     }
 
@@ -316,19 +319,41 @@ export default function CPAAttributeTableApp({
     evidenceFileOptions,
     onDataChange,
     onDeleteAction,
+    onTotalSampleChange,
+    onTotalErrorChange,
+    onTableNameChange,
+    onHeightChange,
 }: CPAAttributeTableAppProps): React.JSX.Element {
     const tableMaxHeight = Math.max(220, height - 120);
     const parsedState = React.useMemo(() => buildInitialState(dataJSONString), [dataJSONString]);
-
     const evidenceOptions = React.useMemo(() => resolveEvidenceOptions(evidenceFileOptions), [evidenceFileOptions]);
+
+    React.useEffect(() => {
+        if (!parsedState.rows) return;
+        const totalSamples = parsedState.rows.length;
+        const totalErrors = parsedState.rows.filter((row) => row.result === 'Fail').length;
+
+        onTotalSampleChange?.(totalSamples);
+        onTotalErrorChange?.(totalErrors);
+    }, [parsedState.rows, onTotalSampleChange, onTotalErrorChange]);
+
+    React.useEffect(() => {
+        onTableNameChange?.(defaultTableName);
+    }, [defaultTableName, onTableNameChange]);
 
     const handleTableDataChange = React.useCallback(
         (snapshot: TableSnapshot) => {
             if (!onDataChange) return;
             const jsonValue = serializeOutputDataJSON(snapshot, parsedState.rowWpIds);
             onDataChange(jsonValue);
+
+            const totalSamples = snapshot.rows.length;
+            const totalErrors = snapshot.rows.filter((row) => row.result === 'Fail').length;
+
+            onTotalSampleChange?.(totalSamples);
+            onTotalErrorChange?.(totalErrors);
         },
-        [onDataChange, parsedState.rowWpIds],
+        [onDataChange, parsedState.rowWpIds, onTotalSampleChange, onTotalErrorChange],
     );
 
     return (
@@ -345,6 +370,10 @@ export default function CPAAttributeTableApp({
                         initialTableNames={tableNameOptions}
                         initialSelectedTableName={defaultTableName}
                         onDataChange={handleTableDataChange}
+                        onTableNameChange={onTableNameChange}
+                        onTotalSampleChange={onTotalSampleChange}
+                        onTotalErrorChange={onTotalErrorChange}
+                        onHeightChange={onHeightChange}
                         onDeleteAction={onDeleteAction}
                         maxHeight={tableMaxHeight}
                     />

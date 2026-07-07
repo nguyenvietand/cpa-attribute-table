@@ -22,13 +22,21 @@
       <property-set name="Title" display-name-key="Title" of-type="SingleLine.Text" usage="bound" required="false" />
     </data-set>
 
+    <event name="OnDelete" display-name-key="On Delete" description-key="OnDelete_DESC" />
+
     <property name="dataJSONOutput" display-name-key="DataJSONOutput" description-key="DataJSONOutput_Desc" usage="bound" of-type="SingleLine.Text" required="false" />
 
-    <event name="OnDelete" display-name-key="On Delete" description-key="OnDelete_DESC" />
+    <property name="tableNameOutput" display-name-key="TableNameOutput" description-key="TableNameOutput_Desc" usage="output" of-type="SingleLine.Text" required="false" />
+
+    <property name="totalSampleOutput" display-name-key="TotalSampleOutput" description-key="TotalSampleOutput_Desc" usage="output" of-type="Whole.None" required="false" />
+
+    <property name="totalErrorOutput" display-name-key="TotalErrorOutput" description-key="TotalErrorOutput_Desc" usage="output" of-type="Whole.None" required="false" />
+
+    <property name="heightOutput" display-name-key="HeightOutput" description-key="HeightOutput_Desc" usage="output" of-type="Whole.None" required="false" />
 
     <resources>
       <code path="index.ts" order="1" />
-      <css path="css/TailwindCompat.css" order="1" />
+      <css path="css/tailwind.css" order="1" />
       <css path="css/CPAAttributeTable.css" order="2" />
     </resources>
   </control>
