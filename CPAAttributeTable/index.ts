@@ -48,7 +48,6 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
     }
 
     private handleDeleteAction = () => {
-        console.log('Delete action triggered');
         const currentContext = this.context as any;
         if (currentContext && currentContext.events) {
             currentContext.events.OnDelete();
@@ -56,21 +55,18 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
     };
 
     private handleDataChange = (nextOutputJson: string) => {
-        console.log('Data change detected:', nextOutputJson);
         if (nextOutputJson === this.dataJSONOutput) return;
         this.dataJSONOutput = nextOutputJson;
         this.notifyOutputChanged?.();
     };
 
     private handleTableNameChange = (nextTableName: string) => {
-        console.log('Table name change detected:', nextTableName);
         if (nextTableName === this.tableNameOutput) return;
         this.tableNameOutput = nextTableName;
         this.notifyOutputChanged?.();
     };
 
     private handleTotalSampleChange = (nextTotalSample: number | string) => {
-        console.log('Total sample change detected:', nextTotalSample);
         const val = Number(nextTotalSample);
         if (val === this.totalSampleOutput) return;
         this.totalSampleOutput = val;
@@ -78,7 +74,6 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
     };
 
     private handleTotalErrorChange = (nextTotalError: number | string) => {
-        console.log('Total error change detected:', nextTotalError);
         const val = Number(nextTotalError);
         if (val === this.totalErrorOutput) return;
         this.totalErrorOutput = val;
@@ -99,7 +94,7 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
         const allocatedWidth = Number(this.context.mode.allocatedWidth);
         const allocatedHeight = Number(this.context.mode.allocatedHeight);
         const font = this.context.parameters.font.raw?.trim() ?? '';
-        const maxHeight = (this.context.parameters.maxHeight.raw ?? 715) - 115;
+        const maxHeight = (this.context.parameters.maxHeight.raw ?? 715) - 120;
         const dataJSONString = this.context.parameters.dataJSON.raw ?? '';
         const defaultTableName = this.context.parameters.defaultTableName.raw ?? '';
         const tableNameOptions = this.getDatasetValues(this.context.parameters.tableNameInputList, 'Value');
@@ -107,14 +102,6 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
 
         const width = Number.isFinite(allocatedWidth) && allocatedWidth > 0 ? allocatedWidth : 1200;
         const height = Number.isFinite(allocatedHeight) && allocatedHeight > 0 ? allocatedHeight : 700;
-
-        // const onDeleteAction = () => {
-        //     console.log('Delete action triggered');
-        //     const currentContext = this.context as any;
-        //     if (currentContext && currentContext.events) {
-        //         currentContext.events.OnDelete();
-        //     }
-        // };
 
         this.root.render(
             React.createElement(CPAAttributeTableApp, {

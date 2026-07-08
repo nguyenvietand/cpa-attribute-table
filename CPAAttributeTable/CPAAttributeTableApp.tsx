@@ -360,7 +360,7 @@ export default function CPAAttributeTableApp({
 
     return (
         <div
-            className='audit-table-skin flex flex-col bg-white'
+            className='audit-table-skin flex flex-col bg-white p-1'
             style={{ width, height, overflow: 'hidden', fontFamily: font || undefined }}>
             <main className='flex-1 bg-gray-50/50' style={{ minHeight: 0, height: '100%' }}>
                 <div className='mx-auto' style={{ height: '100%', boxSizing: 'border-box' }}>

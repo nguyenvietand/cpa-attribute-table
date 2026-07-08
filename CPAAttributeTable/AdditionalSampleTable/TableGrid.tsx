@@ -5,6 +5,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import { mergeEvidenceOptions, splitEvidenceValue, joinEvidenceValues } from "./evidenceUtils";
 import EvidenceMultiSelect from "./EvidenceMultiSelect";
+import ResultSingleSelect from "./ResultSingleSelect";
 
 
 interface TableGridProps {
@@ -36,15 +37,19 @@ interface TableGridProps {
   columnWidths?: ColumnWidths;
   onAddRow: () => void;
   onColumnResize?: (columnId: string, newWidth: number) => void;
-
-  // Selection Props
   selectedRowIds: Set<number>;
   onToggleRowSelection: (id: number) => void;
   onToggleAllSelection: () => void;
   selectionMode: boolean;
   activeRowId: number | null;
   activeColumnId: string | null;
-  onCellClick: (rowId: number | null, columnId: string | null) => void;
+  onCellMouseDown: (e: React.MouseEvent, rowId: number, colId: string) => void;
+  onCellMouseEnter: (rowId: number, colId: string) => void;
+  isCellSelected: (rowId: number, colId: string) => boolean;
+  selectionRange: {
+    start: { rowId: number; colId: string };
+    end: { rowId: number; colId: string };
+  } | null;
 }
 
 export default function TableGrid({
@@ -75,25 +80,15 @@ export default function TableGrid({
   selectionMode,
   activeRowId,
   activeColumnId,
-  onCellClick,
+  onCellMouseDown,
+  onCellMouseEnter,
+  isCellSelected,
+  selectionRange,
 }: TableGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const prevRowsLength = useRef(rows.length);
   const [hoveredCol, setHoveredCol] = useState<string | null>(null);
   const [openEvidenceRowId, setOpenEvidenceRowId] = useState<number | null>(null);
-
-  const handleCellClick = (
-    e: React.MouseEvent,
-    rowId: number,
-    columnId: string,
-  ) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      onToggleRowSelection(rowId);
-    } else {
-      onCellClick(rowId, columnId);
-    }
-  };
 
   const handleMouseDown = (e: React.MouseEvent, columnId: string) => {
     e.preventDefault();
@@ -163,6 +158,11 @@ export default function TableGrid({
     if (w === undefined) return undefined;
     return typeof w === "number" ? `${w}px` : w;
   };
+
+  const selStartRowIdx = selectionRange ? rows.findIndex((r) => r.id === selectionRange.start.rowId) : -1;
+  const selEndRowIdx = selectionRange ? rows.findIndex((r) => r.id === selectionRange.end.rowId) : -1;
+  const minRow = selectionRange ? Math.min(selStartRowIdx, selEndRowIdx) : -1;
+  const maxRow = selectionRange ? Math.max(selStartRowIdx, selEndRowIdx) : -1;
 
   return (
     <div className="w-full flex flex-col">
@@ -380,15 +380,24 @@ export default function TableGrid({
             </thead>
             <tbody>
               {rows.map((row, idx) => {
-                const isActive = activeRowId === row.id;
+                const isMultiCellRange = !!selectionRange && (selectionRange.start.rowId !== selectionRange.end.rowId || selectionRange.start.colId !== selectionRange.end.colId);
+                const isActive = activeRowId === row.id && !isMultiCellRange;
                 const isSelected = selectedRowIds.has(row.id);
+                const isRowInSelection = selectionRange && idx >= minRow && idx <= maxRow;
                 const getCellClass = (colId: string, hasBorderRight = true) => {
                   const isActiveCell =
                     activeRowId === row.id && activeColumnId === colId;
-                  return `${hasBorderRight ? "border-r border-gray-200" : ""} p-0 select-none transition relative ${isActiveCell ?
-                    "ring-2 ring-blue-500 ring-inset bg-blue-50/70"
-                    : ""
-                    }`;
+
+                  const isRangeSelected = isCellSelected(row.id, colId);
+
+                  let cellClass = "";
+                  if (isActiveCell) {
+                    cellClass = "ring-2! ring-blue-600! ring-inset! z-20! bg-blue-50/70!";
+                  } else if (isRangeSelected) {
+                    cellClass = "ring-1! ring-blue-300/60! ring-inset! z-10! bg-blue-500/20!";
+                  }
+
+                  return `${hasBorderRight ? "border-r border-gray-200" : ""} p-0 select-none transition relative focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-inset focus-within:z-10 ${cellClass}`;
                 };
 
                 return (
@@ -400,14 +409,19 @@ export default function TableGrid({
                       }`}>
                     {/* Row Number & Checkbox (Col 0) */}
                     <td
-                      onClick={(e) => handleCellClick(e, row.id, "order")}
-                      className="border-r border-gray-100 p-0 select-none">
+                      onMouseDown={(e) => onCellMouseDown(e, row.id, "order")}
+                      onMouseEnter={() => onCellMouseEnter(row.id, "order")}
+                      className={`border-r border-gray-100 p-0 select-none transition relative ${isCellSelected(row.id, "order") ?
+                        (activeRowId === row.id && activeColumnId === "order" ? "ring-2! ring-blue-600! ring-inset! z-20! bg-blue-50/70!" : "ring-1! ring-blue-300/60! ring-inset! z-10! bg-blue-500/20!")
+                        : (isRowInSelection ? "bg-blue-500/5!" : "")
+                        }`}>
                       <div className="h-10 flex items-center gap-1.5 text-xs font-semibold text-gray-500 justify-center px-1">
                         <input
                           type="checkbox"
                           checked={selectedRowIds.has(row.id)}
                           onChange={() => onToggleRowSelection(row.id)}
                           onClick={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
                           className="w-3 h-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
                           style={{ width: 12, height: 12, flex: '0 0 auto', display: 'block' }}
                         />
@@ -419,7 +433,8 @@ export default function TableGrid({
 
                     {/* Week (Col 1) */}
                     <td
-                      onClick={(e) => handleCellClick(e, row.id, "week")}
+                      onMouseDown={(e) => onCellMouseDown(e, row.id, "week")}
+                      onMouseEnter={() => onCellMouseEnter(row.id, "week")}
                       className={getCellClass("week")}>
                       {selectionMode ?
                         <div className="w-full h-10 text-xs font-medium text-gray-700 flex items-center justify-center">
@@ -456,7 +471,7 @@ export default function TableGrid({
                             onChange={(e) =>
                               onWeekChange(row.id, e.target.value)
                             }
-                            className="w-full h-full text-xs font-medium text-gray-700 bg-transparent border-0 px-1 focus:ring-0 outline-hidden"
+                            className="w-full h-10 text-xs font-medium text-gray-700 bg-transparent border-0 px-1 focus:ring-0 outline-hidden"
                           />
                         </div>
                       }
@@ -468,7 +483,8 @@ export default function TableGrid({
                       return (
                         <td
                           key={attr.id}
-                          onClick={(e) => handleCellClick(e, row.id, attr.id)}
+                          onMouseDown={(e) => onCellMouseDown(e, row.id, attr.id)}
+                          onMouseEnter={() => onCellMouseEnter(row.id, attr.id)}
                           className={getCellClass(attr.id)}>
                           {selectionMode ?
                             <div className="w-full h-10 text-xs font-medium text-gray-700 px-3 flex items-center">
@@ -489,14 +505,8 @@ export default function TableGrid({
 
                     {/* Supporting Evidence (Col N+2) */}
                     <td
-                      onMouseDownCapture={(e) => {
-                        if (e.ctrlKey || e.metaKey) {
-                          onToggleRowSelection(row.id);
-                          return;
-                        }
-                        onCellClick(row.id, "evidence");
-                      }}
-                      onClick={(e) => handleCellClick(e, row.id, "evidence")}
+                      onMouseDown={(e) => onCellMouseDown(e, row.id, "evidence")}
+                      onMouseEnter={() => onCellMouseEnter(row.id, "evidence")}
                       style={{
                         width: formatWidth(columnWidths?.evidence),
                         minWidth: formatWidth(columnWidths?.evidence),
@@ -507,7 +517,7 @@ export default function TableGrid({
                         <div className="w-full h-10 text-xs font-semibold text-gray-700 px-3 flex items-center">
                           {row.evidence}
                         </div>
-                        : <div className="w-full h-10 px-1 min-w-0">
+                        : <div className="w-full h-10 min-w-0">
                           <EvidenceMultiSelect
                             value={row.evidence}
                             options={mergeEvidenceOptions(row.evidence, evidenceOptions)}
@@ -527,42 +537,36 @@ export default function TableGrid({
 
                     {/* Assessment Result (Col N+3) */}
                     <td
-                      onMouseDownCapture={(e) => {
-                        if (e.ctrlKey || e.metaKey) {
-                          onToggleRowSelection(row.id);
-                          return;
-                        }
-                        onCellClick(row.id, "result");
-                      }}
-                      onClick={(e) => handleCellClick(e, row.id, "result")}
-                      className={`${getCellClass("result")} focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-inset`}>
-                      {selectionMode ?
-                        <div
-                          className={
-                            getResultSelectClass(row.result) +
-                            " flex items-center"
-                          }>
-                          {row.result}
+                      onMouseDown={(e) => onCellMouseDown(e, row.id, "result")}
+                      onMouseEnter={() => onCellMouseEnter(row.id, "result")}
+                      className={getCellClass("result")}
+                    >
+                      {selectionMode ? (
+                        <div className={getResultSelectClass(row.result) + " flex items-center w-full h-full"}>
+                          {row.result || "Pass"}
                         </div>
-                        : <select
-                          value={row.result}
-                          onChange={(e) =>
-                            onResultChange(
-                              row.id,
-                              e.target.value as "Pass" | "Fail" | "",
-                            )
-                          }
-                          className={getResultSelectClass(row.result)}>
-                          {row.result === "" && <option value=""> </option>}
-                          <option value="Pass">Pass</option>
-                          <option value="Fail">Fail</option>
-                        </select>
-                      }
+                      ) : (
+                        <div className="w-full h-10 min-w-0">
+                          <ResultSingleSelect
+                            value={row.result || "Pass"}
+                            options={[
+                              { label: "Pass", value: "Pass", optionClass: "text-emerald-800" },
+                              { label: "Fail", value: "Fail", optionClass: "text-red-800" },
+                            ]}
+                            onChange={(val) => onResultChange(row.id, val as "Pass" | "Fail")}
+                            className={`${getResultSelectClass(row.result || "Pass")} ${isCellSelected(row.id, "result") || (activeRowId === row.id && activeColumnId === "result")
+                                ? "bg-transparent!"
+                                : ""
+                              }`}
+                          />
+                        </div>
+                      )}
                     </td>
 
                     {/* Comment (Col N+4) */}
                     <td
-                      onClick={(e) => handleCellClick(e, row.id, "comment")}
+                      onMouseDown={(e) => onCellMouseDown(e, row.id, "comment")}
+                      onMouseEnter={() => onCellMouseEnter(row.id, "comment")}
                       className={getCellClass("comment", false)}>
                       {selectionMode ?
                         <div className="w-full h-10 text-xs font-medium text-gray-700 px-3 flex items-center">
