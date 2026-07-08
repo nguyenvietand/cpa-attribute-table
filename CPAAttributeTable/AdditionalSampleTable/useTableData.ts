@@ -1,5 +1,11 @@
+"use client";
 import { useState, useEffect, useCallback } from "react";
 import { SampleRow, Attribute } from "./mockData";
+
+export interface SelectionRange {
+  start: { rowId: number; colId: string };
+  end: { rowId: number; colId: string };
+}
 
 const DEFAULT_COLUMN_HEADERS = {
   week: "Sample ID",
@@ -26,6 +32,7 @@ export function useTableData({
   initialColumnHeaders = DEFAULT_COLUMN_HEADERS,
   initialEvidenceOptions = [],
 }: UseTableDataProps) {
+  
   const getNextRowId = useCallback((sourceRows: SampleRow[]): number => {
     if (sourceRows.length === 0) return 1;
     const maxId = sourceRows.reduce(
@@ -74,11 +81,12 @@ export function useTableData({
     severity: "success",
   });
 
+  const [selectionRange, setSelectionRange] = useState<SelectionRange | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+
   // Track the active row clicked by the user for paste override functionality
   const [activeRowId, setActiveRowId] = useState<number | null>(null);
   const [activeColumnId, setActiveColumnId] = useState<string | null>(null);
-
-
 
   // Handlers for modifying values (for interactive feel)
   const handleAttrChange = (
@@ -184,12 +192,10 @@ export function useTableData({
     (text: string) => {
       if (!text) return;
 
-      // Split clipboard data into lines and cells (TSV format from Excel)
       const lines = text.split(/\r?\n/);
       const grid: string[][] = lines
         .map((line) => line.split("\t").map((cell) => cell.trim()));
 
-      // Trim empty lines from the end of the grid:
       while (
         grid.length > 0 &&
         (grid[grid.length - 1].length === 0 ||
@@ -203,15 +209,12 @@ export function useTableData({
       const columnOrder = ["week", ...attributes.map((a) => a.id), "evidence", "result", "comment"];
       const startRowIdx = activeRowId !== null ? rows.findIndex((r) => r.id === activeRowId) : -1;
       
-      // If we clicked on the order column (activeColumnId is "order" or null), we shift the paste starting column to "week"
       const targetColId =
         activeRowId !== null && (activeColumnId === null || activeColumnId === "order") ?
           "week"
         : activeColumnId;
       const startColIdx = targetColId !== null ? columnOrder.indexOf(targetColId) : -1;
 
-      // Handle the case where the user clicks the "order" column and pastes a row containing the order/row index column.
-      // We skip the first column of the grid (the order number) so it aligns correctly with the "week" column.
       let adjustedGrid = grid;
       if (activeColumnId === "order" && grid.length > 0 && grid[0].length > 1) {
         const firstCell = grid[0][0].toLowerCase();
@@ -221,7 +224,6 @@ export function useTableData({
         }
       }
 
-      // Flexible cell-level paste (if an active cell is selected)
       if (startRowIdx !== -1 && startColIdx !== -1) {
         const pastedRows = adjustedGrid.length;
         const pastedCols = Math.max(...adjustedGrid.map((r) => r.length));
@@ -240,26 +242,24 @@ export function useTableData({
         const isMultiCell = adjustedGrid.length > 1 || adjustedGrid.some((row) => row.length > 1);
 
         if (!isMultiCell) {
-          // Single cell paste
           const targetVal = adjustedGrid[0][0];
-          const targetColId = columnOrder[startColIdx];
+          const currentTargetColId = columnOrder[startColIdx];
           setRows((prevRows) =>
             prevRows.map((row, idx) => {
               if (idx !== startRowIdx) return row;
-              if (targetColId === "week") {
+              if (currentTargetColId === "week") {
                 return { ...row, week: targetVal };
-              } else if (targetColId === "evidence") {
+              } else if (currentTargetColId === "evidence") {
                 return { ...row, evidence: targetVal };
-              } else if (targetColId === "result") {
+              } else if (currentTargetColId === "result") {
                 let cleanVal: "Pass" | "Fail" = "Pass";
                 if (/^fail$/i.test(targetVal)) {
                   cleanVal = "Fail";
                 }
                 return { ...row, result: cleanVal };
-              } else if (targetColId === "comment") {
+              } else if (currentTargetColId === "comment") {
                 return { ...row, comment: targetVal };
               } else {
-                // dynamic attribute column
                 let cleanVal = targetVal;
                 if (/^pass$/i.test(cleanVal)) {
                   cleanVal = "Pass";
@@ -270,7 +270,7 @@ export function useTableData({
                   ...row,
                   attributes: {
                     ...row.attributes,
-                    [targetColId]: cleanVal,
+                    [currentTargetColId]: cleanVal,
                   },
                 };
               }
@@ -282,7 +282,6 @@ export function useTableData({
             severity: "success",
           });
         } else {
-          // Excel table/multi-cell paste starting from the clicked cell downwards and rightwards
           setRows((prevRows) => {
             const updatedRows = [...prevRows];
             let nextId = getNextRowId(updatedRows);
@@ -290,7 +289,6 @@ export function useTableData({
             adjustedGrid.forEach((gridRow, r) => {
               const targetRowIdx = startRowIdx + r;
 
-              // If targetRowIdx is out of bounds, create a new row
               if (targetRowIdx >= updatedRows.length) {
                 const defaultAttributes: Record<string, string> = {};
                 attributes.forEach((attr) => {
@@ -310,9 +308,9 @@ export function useTableData({
               rowToUpdate.attributes = { ...rowToUpdate.attributes };
 
               gridRow.forEach((cellVal, c) => {
-                const targetColIdx = startColIdx + c;
-                if (targetColIdx < columnOrder.length) {
-                  const colId = columnOrder[targetColIdx];
+                const innerTargetColIdx = startColIdx + c;
+                if (innerTargetColIdx < columnOrder.length) {
+                  const colId = columnOrder[innerTargetColIdx];
                   if (colId === "week") {
                     rowToUpdate.week = cellVal;
                   } else if (colId === "evidence") {
@@ -326,7 +324,6 @@ export function useTableData({
                   } else if (colId === "comment") {
                     rowToUpdate.comment = cellVal;
                   } else {
-                    // Dynamic attribute
                     let cleanVal = cellVal;
                     if (/^pass$/i.test(cellVal)) {
                       cleanVal = "Pass";
@@ -352,11 +349,10 @@ export function useTableData({
         return;
       }
 
-      // --- FALLBACK TO ROW-LEVEL OVERRIDE BEHAVIOR (old behavior) ---
+      // --- FALLBACK TO ROW-LEVEL OVERRIDE BEHAVIOR ---
       const filteredGrid = grid.filter((row) => row.length > 0 && row.some((cell) => cell !== ""));
       if (filteredGrid.length === 0) return;
 
-      // Smart Header Skip: detect if the first row is a header row by checking keywords
       let dataStartIndex = 0;
       const firstRow = filteredGrid[0];
       const looksLikeHeader = firstRow.some((cell) => {
@@ -387,32 +383,19 @@ export function useTableData({
       const headerMappings: ColumnMapping[] = [];
 
       if (looksLikeHeader) {
-        // Parse header row to build explicit mappings
         firstRow.forEach((cell) => {
           const lower = cell.toLowerCase();
           if (lower.includes("order") || lower === "id") {
             headerMappings.push({ type: "order" });
-          } else if (
-            lower.includes("week") ||
-            lower.includes("date") ||
-            lower.includes("sample w")
-          ) {
+          } else if (lower.includes("week") || lower.includes("date") || lower.includes("sample w")) {
             headerMappings.push({ type: "week" });
-          } else if (
-            lower.includes("evidence") ||
-            lower.includes("support")
-          ) {
+          } else if (lower.includes("evidence") || lower.includes("support")) {
             headerMappings.push({ type: "evidence" });
-          } else if (
-            lower.includes("result") ||
-            lower.includes("assess") ||
-            lower.includes("pass/fail")
-          ) {
+          } else if (lower.includes("result") || lower.includes("assess") || lower.includes("pass/fail")) {
             headerMappings.push({ type: "result" });
           } else if (lower.includes("comment")) {
             headerMappings.push({ type: "comment" });
           } else {
-            // Check if it matches a dynamic attribute name
             const matchedAttr = attributes.find((attr) => {
               const attrNameLower = attr.name.toLowerCase();
               return (
@@ -425,7 +408,6 @@ export function useTableData({
             if (matchedAttr) {
               headerMappings.push({ type: "attribute", attributeId: matchedAttr.id });
             } else {
-              // Try regex match for "attribute X" or "attr X"
               const match = lower.match(/attr(ibute)?\s*(\d+)/i);
               if (match) {
                 const num = match[2];
@@ -448,24 +430,16 @@ export function useTableData({
 
       for (let i = dataStartIndex; i < filteredGrid.length; i++) {
         const cells = filteredGrid[i];
-
-        // Skip very short lines that cannot contain Week, Evidence, and Result
-        if (cells.length < 3) {
-          continue;
-        }
+        if (cells.length < 3) continue;
 
         let rowMappings = headerMappings;
 
         if (!looksLikeHeader) {
-          // If no header is pasted, detect ID column from the first cell of the row
           let hasIdColumn = false;
           if (cells.length >= 5 && /^\d+$/.test(cells[0])) {
             const secondCellLower = cells[1].toLowerCase();
             const isSecondCellAttribute =
-              secondCellLower === "pass" ||
-              secondCellLower === "fail" ||
-              secondCellLower === "n/a" ||
-              secondCellLower === "";
+              secondCellLower === "pass" || secondCellLower === "fail" || secondCellLower === "n/a" || secondCellLower === "";
             if (!isSecondCellAttribute) {
               hasIdColumn = true;
             }
@@ -473,12 +447,9 @@ export function useTableData({
 
           const colOffset = hasIdColumn ? 1 : 0;
           rowMappings = [];
-          if (hasIdColumn) {
-            rowMappings.push({ type: "order" });
-          }
+          if (hasIdColumn) rowMappings.push({ type: "order" });
           rowMappings.push({ type: "week" });
 
-          // Map as many attributes as are actually present in the pasted row
           const pastedAttrCount = cells.length - (colOffset + 1 + 3);
           for (let idx = 0; idx < pastedAttrCount; idx++) {
             if (idx < attributes.length) {
@@ -527,22 +498,7 @@ export function useTableData({
           }
         });
 
-        // Row skip condition: if all fields (week, evidence, result, attributes) are empty, ignore it
-        const isWeekEmpty = weekVal === "";
-        const isEvidenceEmpty = rawEvidenceVal === "";
-        const isResultEmpty = rawResultVal === "";
-        const isCommentEmpty = rawCommentVal === "";
-        const isAttributesEmpty = Object.values(attrRecord).every(
-          (val) => val === "",
-        );
-
-        if (
-          isWeekEmpty &&
-          isEvidenceEmpty &&
-          isResultEmpty &&
-          isCommentEmpty &&
-          isAttributesEmpty
-        ) {
+        if (weekVal === "" && rawEvidenceVal === "" && rawResultVal === "" && rawCommentVal === "" && Object.values(attrRecord).every((val) => val === "")) {
           continue;
         }
 
@@ -584,7 +540,7 @@ export function useTableData({
         });
       }
     },
-    [attributes, handleImportRows, handleOverrideRows, activeRowId, activeColumnId, rows],
+    [attributes, handleImportRows, handleOverrideRows, activeRowId, activeColumnId, rows, getNextRowId]
   );
 
   // Toolbar Paste button handler
@@ -605,7 +561,6 @@ export function useTableData({
   // Keyboard shortcut listener for Ctrl + V
   useEffect(() => {
     const handlePasteEvent = (e: ClipboardEvent) => {
-      // Check if focus is in an input or textarea
       const activeEl = document.activeElement;
       const isTextInput =
         activeEl &&
@@ -619,23 +574,20 @@ export function useTableData({
       const text = e.clipboardData?.getData("text/plain") || "";
       if (!text) return;
 
-      // Determine if it is a multi-cell/Excel paste
       const hasTab = text.includes("\t");
       const hasNewline = text.trim().includes("\n") || text.trim().includes("\r");
       const isMultiCell = hasTab || hasNewline;
 
-      if (isTextInput && !isMultiCell) {
-        // Let browser handle standard single-value paste inside text inputs
+      const isMultiCellRange = selectionRange && (selectionRange.start.rowId !== selectionRange.end.rowId || selectionRange.start.colId !== selectionRange.end.colId);
+
+      if (isTextInput && !isMultiCell && !isMultiCellRange) {
         return;
       }
 
-      // Otherwise, prevent default and run our custom grid paste logic!
       e.preventDefault();
-
       if (activeEl instanceof HTMLElement) {
         activeEl.blur();
       }
-
       handleDirectPaste(text);
     };
 
@@ -643,7 +595,7 @@ export function useTableData({
     return () => {
       window.removeEventListener("paste", handlePasteEvent);
     };
-  }, [handleDirectPaste]);
+  }, [handleDirectPaste, selectionRange]);
 
   // Add default row handler
   const handleAddDefaultRow = () => {
@@ -749,21 +701,24 @@ export function useTableData({
     }
   };
 
-  // Reset core table data only when the source table payload changes.
+  // Sync logic when component mounts or initial props changes
   useEffect(() => {
     setRows(initialRows);
     setAttributes(normalizeAttributeLayout(initialAttributes));
     setColumnHeaders(initialColumnHeaders);
   }, [initialRows, initialAttributes, initialColumnHeaders, normalizeAttributeLayout]);
 
-  // Keep evidence options in sync without resetting editable grid state.
   useEffect(() => {
     setEvidenceOptions(initialEvidenceOptions);
   }, [initialEvidenceOptions]);
 
-  // Calculate statistics
   const totalSamples = rows.length;
-  const totalErrors = rows.filter((row) => row.result === "Fail").length;
+  const totalErrors = rows.filter((row) => {
+    const hasFailAttr = attributes.some(
+      (attr) => row.attributes[attr.id] === "Fail",
+    );
+    return hasFailAttr || row.result === "Fail";
+  }).length;
 
   return {
     isExpanded,
@@ -801,6 +756,10 @@ export function useTableData({
     handleUpdateAttribute,
     handleUpdateColumnHeader,
     handleToolbarPasteClick,
+    selectionRange,
+    setSelectionRange,
+    isSelecting,
+    setIsSelecting,
     handleReset,
   };
 }

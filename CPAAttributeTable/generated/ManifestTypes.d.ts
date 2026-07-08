@@ -13,6 +13,7 @@ export interface IInputs {
     evidenceFileInputList: ComponentFramework.PropertyTypes.DataSet;
 }
 export interface IOutputs {
+    maxHeight?: number;
     dataJSONOutput?: string;
     tableNameOutput?: string;
     totalSampleOutput?: number;

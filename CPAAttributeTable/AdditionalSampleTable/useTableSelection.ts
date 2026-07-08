@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { SampleRow, Attribute } from "./index";
-import copy from "copy-to-clipboard";
+import {
+  writeToClipboard,
+  exportSelectionToTSV,
+  exportAllToTSV,
+} from "./utils/clipboardHelper";
 
 interface UseTableSelectionProps {
   rows: SampleRow[];
@@ -9,10 +13,11 @@ interface UseTableSelectionProps {
     week: string;
     evidence: string;
     result: string;
-    comment: string;
+    comment?: string;
   };
   onShowToast: (message: string) => void;
   activeRowId?: number | null;
+  hasRangeSelection?: boolean;
 }
 
 export function useTableSelection({
@@ -21,6 +26,7 @@ export function useTableSelection({
   columnHeaders,
   onShowToast,
   activeRowId = null,
+  hasRangeSelection = false,
 }: UseTableSelectionProps) {
   const [selectedRowIds, setSelectedRowIds] = useState<Set<number>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
@@ -33,16 +39,6 @@ export function useTableSelection({
       }
       return nextVal;
     });
-  };
-
-  const writeToClipboard = (tsv: string) => {
-    try {
-      copy(tsv, {
-        format: "text/plain",
-      });
-    } catch (err) {
-      console.error("Failed to copy to clipboard via library", err);
-    }
   };
 
   const toggleRowSelection = (rowId: number) => {
@@ -70,40 +66,12 @@ export function useTableSelection({
   const handleCopySelectionDirect = useCallback(() => {
     if (selectedRowIds.size === 0 && typeof activeRowId !== "number") return;
 
-    let tsvContent = "";
-    let copiedCount = 0;
-
-    if (selectedRowIds.size > 0) {
-      rows.forEach((row, idx) => {
-        if (selectedRowIds.has(row.id)) {
-          const rowCells = [
-            (idx + 1).toString(),
-            row.week,
-            ...attributes.map((a) => row.attributes[a.id] || ""),
-            row.evidence,
-            row.result,
-            row.comment || "",
-          ];
-          tsvContent += rowCells.join("\t") + "\n";
-          copiedCount++;
-        }
-      });
-    } else if (typeof activeRowId === "number") {
-      const activeIdx = rows.findIndex((r) => r.id === activeRowId);
-      if (activeIdx !== -1) {
-        const row = rows[activeIdx];
-        const rowCells = [
-          (activeIdx + 1).toString(),
-          row.week,
-          ...attributes.map((a) => row.attributes[a.id] || ""),
-          row.evidence,
-          row.result,
-          row.comment || "",
-        ];
-        tsvContent += rowCells.join("\t") + "\n";
-        copiedCount = 1;
-      }
-    }
+    const { tsvContent, copiedCount } = exportSelectionToTSV(
+      rows,
+      attributes,
+      selectedRowIds,
+      activeRowId
+    );
 
     if (tsvContent) {
       writeToClipboard(tsvContent);
@@ -112,30 +80,7 @@ export function useTableSelection({
   }, [selectedRowIds, activeRowId, rows, attributes, onShowToast]);
 
   const handleCopyAll = () => {
-    let tsvContent = "";
-
-    const headers = [
-      "Order",
-      columnHeaders.week,
-      ...attributes.map((a) => a.name),
-      columnHeaders.evidence,
-      columnHeaders.result,
-      columnHeaders.comment,
-    ];
-    tsvContent += headers.join("\t") + "\n";
-
-    rows.forEach((row, idx) => {
-      const rowCells = [
-        (idx + 1).toString(),
-        row.week,
-        ...attributes.map((a) => row.attributes[a.id] || ""),
-        row.evidence,
-        row.result,
-        row.comment || "",
-      ];
-      tsvContent += rowCells.join("\t") + "\n";
-    });
-
+    const tsvContent = exportAllToTSV(rows, attributes, columnHeaders);
     writeToClipboard(tsvContent);
     onShowToast(`Successfully copied entire table (${rows.length} rows) to clipboard in Excel format!`);
   };
@@ -147,6 +92,8 @@ export function useTableSelection({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (hasRangeSelection) return; 
+
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
         const activeEl = document.activeElement;
         const isTextInput =
@@ -175,7 +122,7 @@ export function useTableSelection({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedRowIds, activeRowId, handleCopySelectionDirect]);
+  }, [selectedRowIds, activeRowId, handleCopySelectionDirect, hasRangeSelection]);
 
   return {
     selectedRowIds,

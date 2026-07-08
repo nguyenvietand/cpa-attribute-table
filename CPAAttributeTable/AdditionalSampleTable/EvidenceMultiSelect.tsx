@@ -25,7 +25,7 @@ export default function EvidenceMultiSelect({
   onOpenChange,
 }: EvidenceMultiSelectProps) {
   const [internalOpen, setInternalOpen] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState(""); // 1. Khởi tạo state lưu từ khóa search
+  const [searchQuery, setSearchQuery] = React.useState("");
   const rootRef = React.useRef<HTMLDivElement | null>(null);
   const dropdownRef = React.useRef<HTMLDivElement | null>(null);
   const selectedValues = React.useMemo(() => splitEvidenceValue(value), [value]);
@@ -43,14 +43,12 @@ export default function EvidenceMultiSelect({
     [isControlled, onOpenChange],
   );
 
-  // 2. Reset lại ô search về rỗng mỗi khi đóng dropdown
   React.useEffect(() => {
     if (!isOpen) {
       setSearchQuery("");
     }
   }, [isOpen]);
 
-  // 3. Thực hiện lọc danh sách options theo từ khóa nhập vào
   const filteredOptions = React.useMemo(() => {
     return options.filter((option) =>
       option.toLowerCase().includes(searchQuery.toLowerCase())
@@ -127,13 +125,11 @@ export default function EvidenceMultiSelect({
         <div
           ref={dropdownRef}
           style={dropdownStyle}
-          // Thêm flex flex-col và overflow-hidden để ô search cố định ở top, chỉ scroll list option bên dưới
           className="rounded border border-gray-300 bg-white shadow-lg overflow-hidden flex flex-col">
           
-          {/* 4. THANH CHỨA Ô INPUT TÌM KIẾM */}
           <div 
             className="p-1.5 border-b border-gray-100 bg-gray-50"
-            onMouseDown={(e) => e.stopPropagation()} // Chặn sự kiện mousedown lan ra bảng làm mất active cell
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <input
               type="text"
@@ -144,7 +140,6 @@ export default function EvidenceMultiSelect({
             />
           </div>
 
-          {/* LIST OPTIONS (Đã đổi từ options sang filteredOptions) */}
           <div className="max-h-44 overflow-y-auto py-1">
             {filteredOptions.map((option) => (
               <button
@@ -165,7 +160,6 @@ export default function EvidenceMultiSelect({
               </button>
             ))}
             
-            {/* 5. HIỂN THỊ TRẠNG THÁI KHÔNG CÓ KẾT QUẢ */}
             {filteredOptions.length === 0 && (
               <div className="px-3 py-3 text-xs text-gray-400 text-center italic">
                 {options.length === 0 ? "No files available" : "No matches found"}

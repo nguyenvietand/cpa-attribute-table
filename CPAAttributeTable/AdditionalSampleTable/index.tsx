@@ -15,6 +15,7 @@ import AddRowDialog from "./AddRowDialog";
 import EditRowDialog from "./EditRowDialog";
 import { useTableSelection } from "./useTableSelection";
 import { useTableData } from "./useTableData";
+import { useTableDragDrop } from "./useTableDragDrop";
 
 export interface ColumnWidths {
   order?: string | number;
@@ -57,13 +58,14 @@ interface AdditionalSampleTableProps {
   columnWidths?: ColumnWidths;
 }
 
+/* DEFAULT TABLE LAYOUT CONFIGURATION */
 const DEFAULT_TABLE_CONFIG = {
   maxHeight: 400,
   columnWidths: {
     order: 50,
-    week: 140,
+    week: 200,
     attributes: 300,
-    evidence: 300,
+    evidence: 200,
     result: 200,
     comment: 200,
   },
@@ -85,6 +87,7 @@ export default function AdditionalSampleTable({
   maxHeight,
   columnWidths,
 }: AdditionalSampleTableProps) {
+
   const {
     isExpanded,
     setIsExpanded,
@@ -118,11 +121,20 @@ export default function AdditionalSampleTable({
     handleUpdateColumnHeader,
     handleToolbarPasteClick,
     handleAddDefaultRow,
-  } = useTableData({ initialRows, initialAttributes, initialColumnHeaders, initialEvidenceOptions });
+    selectionRange,
+    setSelectionRange,
+    isSelecting,
+    setIsSelecting,
+  } = useTableData({
+    initialRows,
+    initialAttributes,
+    initialColumnHeaders,
+    initialEvidenceOptions
+  });
 
   const {
     selectedRowIds,
-    hasSelection,
+    hasSelection: hasRowSelection,
     toggleRowSelection,
     toggleAllSelection,
     handleCopySelectionDirect,
@@ -135,10 +147,36 @@ export default function AdditionalSampleTable({
     columnHeaders,
     onShowToast: (message) => setSnackbar({ open: true, message }),
     activeRowId,
+    hasRangeSelection: !!selectionRange,
+  });
+
+  const hasSelection = hasRowSelection || !!selectionRange;
+
+  const {
+    onCellMouseDown,
+    onCellMouseEnter,
+    isCellSelected,
+    handleCopyRange,
+  } = useTableDragDrop({
+    rows,
+    attributes,
+    selectedRowIds,
+    activeRowId,
+    activeColumnId,
+    onCellClick: (rowId, colId) => {
+      setActiveRowId(rowId);
+      setActiveColumnId(colId);
+    },
+    onToggleRowSelection: toggleRowSelection,
+    onShowToast: (message, severity = "success") =>
+      setSnackbar({ open: true, message, severity }),
+    selectionRange,
+    setSelectionRange,
+    isSelecting,
+    setIsSelecting,
   });
 
   const resolvedMaxHeight = maxHeight ?? DEFAULT_TABLE_CONFIG.maxHeight;
-
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [prevColumnWidths, setPrevColumnWidths] = React.useState(columnWidths);
@@ -157,16 +195,18 @@ export default function AdditionalSampleTable({
   }
 
   const [prevInitialSelectedTableName, setPrevInitialSelectedTableName] = React.useState(initialSelectedTableName);
+
   const [selectedTableName, setSelectedTableName] = React.useState(() => {
     const normalizedDefault = (initialSelectedTableName || "").trim();
-    if (normalizedDefault && initialTableNames.includes(normalizedDefault)) return normalizedDefault;
+    if (normalizedDefault) return normalizedDefault;
     return initialTableNames.length > 0 ? initialTableNames[0] : "";
   });
 
   if (initialSelectedTableName !== prevInitialSelectedTableName) {
     setPrevInitialSelectedTableName(initialSelectedTableName);
     const normalizedDefault = (initialSelectedTableName || "").trim();
-    if (normalizedDefault && initialTableNames.includes(normalizedDefault)) {
+
+    if (normalizedDefault) {
       setSelectedTableName(normalizedDefault);
     } else if (initialTableNames.length > 0) {
       setSelectedTableName(initialTableNames[0]);
@@ -207,11 +247,11 @@ export default function AdditionalSampleTable({
   }, [rows, attributes, columnHeaders, onDataChange]);
 
   return (
-    <div ref={containerRef} className="w-full flex flex-col border! border-gray-200!">
+    <div ref={containerRef} className="w-full flex flex-col border! border-gray-200! rounded-lg overflow-hidden bg-white!">
       <Accordion
         expanded={isExpanded}
         onChange={() => setIsExpanded(!isExpanded)}
-        className="shadow-none! border-0! rounded-none! overflow-hidden bg-transparent! flex-1"
+        className="shadow-none! border-0! rounded-none! overflow-hidden bg-transparent!"
         sx={{ display: 'flex', flexDirection: 'column', boxShadow: 'none', border: 0, borderRadius: 0, backgroundColor: 'transparent', minHeight: 0, flex: '0 0 auto' }}
         disableGutters>
         <AccordionSummary
@@ -225,13 +265,14 @@ export default function AdditionalSampleTable({
             title={selectedTableName}
           />
         </AccordionSummary>
+
         <AccordionDetails className="p-0! border-0!" sx={{ p: 0, borderTop: 0, display: 'flex', flexDirection: 'column' }}>
           <TableToolbar
             onAddRowClick={() => setIsAddRowOpen(true)}
             onPasteClick={handleToolbarPasteClick}
             selectionMode={selectionMode}
             onToggleSelectionMode={toggleSelectionMode}
-            onCopySelection={handleCopySelectionDirect}
+            onCopySelection={selectionRange ? handleCopyRange : handleCopySelectionDirect}
             onCopyAll={handleCopyAll}
             hasSelection={hasSelection}
             tableNames={initialTableNames}
@@ -272,10 +313,10 @@ export default function AdditionalSampleTable({
             selectionMode={selectionMode}
             activeRowId={activeRowId}
             activeColumnId={activeColumnId}
-            onCellClick={(rowId, colId) => {
-              setActiveRowId(rowId);
-              setActiveColumnId(colId);
-            }}
+            onCellMouseDown={onCellMouseDown}
+            onCellMouseEnter={onCellMouseEnter}
+            isCellSelected={isCellSelected}
+            selectionRange={selectionRange}
           />
 
           <TableFooter />
