@@ -60,6 +60,7 @@ export function useTableDragDrop({
         ...attributes.map((a) => a.id),
         "evidence",
         "result",
+        "comment",
       ];
       const startColIdx = allColumns.indexOf(start.colId);
       const endColIdx = allColumns.indexOf(end.colId);

@@ -71,13 +71,15 @@ export default function EvidenceMultiSelect({
   const updateDropdownPosition = React.useCallback(() => {
     if (!rootRef.current) return;
     const rect = rootRef.current.getBoundingClientRect();
+    const computedStyle = window.getComputedStyle(rootRef.current);
     setDropdownStyle({
       position: "fixed",
       left: rect.left,
-      top: rect.bottom + 4,
+      top: rect.bottom,
       width: rect.width,
       minWidth: 240,
       zIndex: 2000,
+      fontFamily: computedStyle.fontFamily,
     });
   }, []);
 
@@ -108,16 +110,14 @@ export default function EvidenceMultiSelect({
       {label && <div className="text-[11px] text-gray-500 mb-1">{label}</div>}
       <button
         type="button"
-        onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => {
           event.stopPropagation();
           setOpenState(!isOpen);
         }}
-        className={`w-full rounded text-left text-xs text-gray-700 focus:outline-none cursor-pointer ${
-          compact
-            ? "h-10 px-3 border-0 bg-transparent"
-            : "h-10 px-2.5 border border-gray-300 bg-white focus:border-gray-450"
-        } overflow-hidden max-w-full`}>
+        className={`w-full rounded text-left text-xs text-gray-700 focus:outline-none cursor-pointer ${compact
+          ? "h-10 px-3 border-0 bg-transparent"
+          : "h-10 px-2.5 border border-gray-300 bg-white focus:border-gray-450"
+          } overflow-hidden max-w-full`}>
         <span className="block w-full truncate pr-5 font-semibold">{displayValue || ""}</span>
       </button>
 
@@ -125,9 +125,9 @@ export default function EvidenceMultiSelect({
         <div
           ref={dropdownRef}
           style={dropdownStyle}
-          className="rounded border border-gray-300 bg-white shadow-lg overflow-hidden flex flex-col">
-          
-          <div 
+          className="border border-gray-300 bg-white overflow-hidden flex flex-col">
+
+          <div
             className="p-1.5 border-b border-gray-100 bg-gray-50"
             onMouseDown={(e) => e.stopPropagation()}
           >
@@ -150,16 +150,15 @@ export default function EvidenceMultiSelect({
                   event.stopPropagation();
                   toggleValue(option);
                 }}
-                className={`w-full text-left px-3 py-1.5 text-xs break-all cursor-pointer ${
-                  selectedValues.includes(option)
-                    ? "bg-gray-200 text-gray-900 font-semibold"
-                    : "text-gray-700 hover:bg-gray-50"
-                }`}>
+                className={`w-full text-left px-3 py-1.5 text-xs break-all cursor-pointer ${selectedValues.includes(option)
+                  ? "bg-gray-200 text-gray-900 font-semibold"
+                  : "text-gray-700 hover:bg-gray-50"
+                  }`}>
                 {selectedValues.includes(option) && <span className="mr-1">✓   </span>}
                 {option}
               </button>
             ))}
-            
+
             {filteredOptions.length === 0 && (
               <div className="px-3 py-3 text-xs text-gray-400 text-center italic">
                 {options.length === 0 ? "No files available" : "No matches found"}

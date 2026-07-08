@@ -14,7 +14,7 @@ interface UseTableSelectionProps {
     week: string;
     evidence: string;
     result: string;
-    comment?: string;
+    comment: string;
   };
   onShowToast: (message: string) => void;
   activeRowId?: number | null;
@@ -67,6 +67,10 @@ export function useTableSelection({
   };
 
   const handleCopySelectionDirect = useCallback(() => {
+    console.log({
+      selectedRowIds,
+      activeRowId,
+    });
     if (selectedRowIds.size === 0 && typeof activeRowId !== "number") return;
 
     const { tsvContent, copiedCount } = exportSelectionToTSV(

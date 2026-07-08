@@ -254,9 +254,12 @@ export default function AdditionalSampleTable({
       selectionRange.start.colId === selectionRange.end.colId
     );
 
+  const hasNoActiveCell =
+    activeColumnId === null || activeColumnId === undefined;
+
   const shouldCopyRows =
-    activeColumnId === "order" &&
     selectedRowIds.size > 0 &&
+    (activeColumnId === "order" || hasNoActiveCell) &&
     isSingleCellSelection;
 
   return (

@@ -6,9 +6,7 @@ export interface SelectionRange {
   end: { rowId: number; colId: string };
 }
 
-
 // Writes raw text to clipboard using the copy-to-clipboard library.
-
 export function writeToClipboard(text: string): boolean {
   try {
     return copy(text, {
@@ -19,7 +17,6 @@ export function writeToClipboard(text: string): boolean {
     return false;
   }
 }
-
 
 // Serializes selected rows (or active row if no selection) into a TSV string.
 export function exportSelectionToTSV(
@@ -40,6 +37,7 @@ export function exportSelectionToTSV(
           ...attributes.map((a) => row.attributes[a.id] || ""),
           row.evidence,
           row.result,
+          row.comment || "", // <-- Thêm comment
         ];
         tsvContent += rowCells.join("\t") + "\n";
         copiedCount++;
@@ -55,6 +53,7 @@ export function exportSelectionToTSV(
         ...attributes.map((a) => row.attributes[a.id] || ""),
         row.evidence,
         row.result,
+        row.comment || "", // <-- Thêm comment
       ];
       tsvContent += rowCells.join("\t") + "\n";
       copiedCount = 1;
@@ -68,7 +67,7 @@ export function exportSelectionToTSV(
 export function exportAllToTSV(
   rows: SampleRow[],
   attributes: Attribute[],
-  columnHeaders: { week: string; evidence: string; result: string }
+  columnHeaders: { week: string; evidence: string; result: string; comment: string } // <-- Thêm comment
 ): string {
   let tsvContent = "";
 
@@ -78,6 +77,7 @@ export function exportAllToTSV(
     ...attributes.map((a) => a.name),
     columnHeaders.evidence,
     columnHeaders.result,
+    columnHeaders.comment, // <-- Thêm comment
   ];
   tsvContent += headers.join("\t") + "\n";
 
@@ -88,6 +88,7 @@ export function exportAllToTSV(
       ...attributes.map((a) => row.attributes[a.id] || ""),
       row.evidence,
       row.result,
+      row.comment || "", // <-- Thêm comment
     ];
     tsvContent += rowCells.join("\t") + "\n";
   });
@@ -96,7 +97,6 @@ export function exportAllToTSV(
 }
 
 // Serializes a selected cell range into a TSV string.
-
 export function exportCellRangeToTSV(
   rows: SampleRow[],
   attributes: Attribute[],
@@ -109,7 +109,8 @@ export function exportCellRangeToTSV(
   const minRow = Math.min(startRowIdx, endRowIdx);
   const maxRow = Math.max(startRowIdx, endRowIdx);
 
-  const allColumns = ["order", "week", ...attributes.map((a) => a.id), "evidence", "result"];
+  // <-- Thêm "comment" vào mảng allColumns
+  const allColumns = ["order", "week", ...attributes.map((a) => a.id), "evidence", "result", "comment"];
   const startColIdx = allColumns.indexOf(start.colId);
   const endColIdx = allColumns.indexOf(end.colId);
   const minCol = Math.min(startColIdx, endColIdx);
@@ -134,6 +135,8 @@ export function exportCellRangeToTSV(
       tsvContent = row.evidence;
     } else if (colId === "result") {
       tsvContent = row.result;
+    } else if (colId === "comment") { // <-- Thêm logic lấy dữ liệu comment
+      tsvContent = row.comment || "";
     } else {
       tsvContent = row.attributes[colId] || "";
     }
@@ -151,6 +154,8 @@ export function exportCellRangeToTSV(
           rowCells.push(row.evidence);
         } else if (colId === "result") {
           rowCells.push(row.result);
+        } else if (colId === "comment") { // <-- Thêm logic lấy dữ liệu comment
+          rowCells.push(row.comment || "");
         } else {
           rowCells.push(row.attributes[colId] || "");
         }

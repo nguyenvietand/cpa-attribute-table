@@ -5,6 +5,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import { mergeEvidenceOptions, splitEvidenceValue, joinEvidenceValues } from "./evidenceUtils";
 import EvidenceMultiSelect from "./EvidenceMultiSelect";
+import ResultSingleSelect from "./ResultSingleSelect";
 
 
 interface TableGridProps {
@@ -516,7 +517,7 @@ export default function TableGrid({
                         <div className="w-full h-10 text-xs font-semibold text-gray-700 px-3 flex items-center">
                           {row.evidence}
                         </div>
-                        : <div className="w-full h-10 px-1 min-w-0">
+                        : <div className="w-full h-10 min-w-0">
                           <EvidenceMultiSelect
                             value={row.evidence}
                             options={mergeEvidenceOptions(row.evidence, evidenceOptions)}
@@ -538,31 +539,28 @@ export default function TableGrid({
                     <td
                       onMouseDown={(e) => onCellMouseDown(e, row.id, "result")}
                       onMouseEnter={() => onCellMouseEnter(row.id, "result")}
-                      className={getCellClass("result")}>
-                      {selectionMode ?
-                        <div
-                          className={
-                            getResultSelectClass(row.result) +
-                            " flex items-center"
-                          }>
-                          {row.result}
+                      className={getCellClass("result")}
+                    >
+                      {selectionMode ? (
+                        <div className={getResultSelectClass(row.result) + " flex items-center w-full h-full"}>
+                          {row.result || "Pass"}
                         </div>
-                        : <select
-                          value={row.result}
-                          onChange={(e) =>
-                            onResultChange(
-                              row.id,
-                              e.target.value as "Pass" | "Fail" | "",
-                            )
-                          }
-                          className={`${getResultSelectClass(row.result)} ${
-                            isCellSelected(row.id, "result") || (activeRowId === row.id && activeColumnId === "result") ? "bg-transparent!" : ""
-                          }`}>
-                          {row.result === "" && <option value=""> </option>}
-                          <option value="Pass">Pass</option>
-                          <option value="Fail">Fail</option>
-                        </select>
-                      }
+                      ) : (
+                        <div className="w-full h-10 min-w-0">
+                          <ResultSingleSelect
+                            value={row.result || "Pass"}
+                            options={[
+                              { label: "Pass", value: "Pass", optionClass: "text-emerald-800" },
+                              { label: "Fail", value: "Fail", optionClass: "text-red-800" },
+                            ]}
+                            onChange={(val) => onResultChange(row.id, val as "Pass" | "Fail")}
+                            className={`${getResultSelectClass(row.result || "Pass")} ${isCellSelected(row.id, "result") || (activeRowId === row.id && activeColumnId === "result")
+                                ? "bg-transparent!"
+                                : ""
+                              }`}
+                          />
+                        </div>
+                      )}
                     </td>
 
                     {/* Comment (Col N+4) */}
