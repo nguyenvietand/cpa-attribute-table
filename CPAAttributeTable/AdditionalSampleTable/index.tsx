@@ -65,9 +65,9 @@ const DEFAULT_TABLE_CONFIG = {
     order: 50,
     week: 200,
     attributes: 300,
-    evidence: 200,
-    result: 200,
-    comment: 200,
+    evidence: 300,
+    result: 300,
+    comment: 300,
   },
 };
 
@@ -147,6 +147,7 @@ export default function AdditionalSampleTable({
     columnHeaders,
     onShowToast: (message) => setSnackbar({ open: true, message }),
     activeRowId,
+    selectionRange,
     hasRangeSelection: !!selectionRange,
   });
 
@@ -246,6 +247,18 @@ export default function AdditionalSampleTable({
     });
   }, [rows, attributes, columnHeaders, onDataChange]);
 
+  const isSingleCellSelection =
+    !selectionRange ||
+    (
+      selectionRange.start.rowId === selectionRange.end.rowId &&
+      selectionRange.start.colId === selectionRange.end.colId
+    );
+
+  const shouldCopyRows =
+    activeColumnId === "order" &&
+    selectedRowIds.size > 0 &&
+    isSingleCellSelection;
+
   return (
     <div ref={containerRef} className="w-full flex flex-col border! border-gray-200! rounded-lg overflow-hidden bg-white!">
       <Accordion
@@ -272,7 +285,11 @@ export default function AdditionalSampleTable({
             onPasteClick={handleToolbarPasteClick}
             selectionMode={selectionMode}
             onToggleSelectionMode={toggleSelectionMode}
-            onCopySelection={selectionRange ? handleCopyRange : handleCopySelectionDirect}
+            onCopySelection={
+              shouldCopyRows
+                ? handleCopySelectionDirect
+                : handleCopyRange
+            }
             onCopyAll={handleCopyAll}
             hasSelection={hasSelection}
             tableNames={initialTableNames}

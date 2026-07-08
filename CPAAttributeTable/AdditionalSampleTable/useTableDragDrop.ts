@@ -46,7 +46,6 @@ export function useTableDragDrop({
 
   const isCellSelected = useCallback(
     (rowId: number, colId: string) => {
-      console.log("check", rowId, colId, selectionRange);
       if (!selectionRange) return false;
 
       const { start, end } = selectionRange;
@@ -94,7 +93,6 @@ export function useTableDragDrop({
 
   const onCellMouseDown = useCallback(
     (e: React.MouseEvent, rowId: number, colId: string) => {
-      console.log("onCellMouseDown", { rowId, colId });
       if (e.button !== 0) return; // Only trigger for left clicks
 
       mouseDownInfo.current = { rowId, colId, event: e };
@@ -116,11 +114,6 @@ export function useTableDragDrop({
 
   const onCellMouseEnter = useCallback(
     (rowId: number, colId: string) => {
-      console.log("mouseenter", {
-        rowId,
-        colId,
-        isSelecting,
-      });
       if (isSelecting) {
         setSelectionRange((prev) => {
           if (!prev) return null;
@@ -137,11 +130,6 @@ export function useTableDragDrop({
   // Global mouseup and mousedown handlers to manage selection
   useEffect(() => {
     const handleGlobalMouseUp = () => {
-      console.log("mouseup", {
-        isSelecting,
-        hasTimer: !!dragTimer.current,
-        mouseDownInfo: mouseDownInfo.current,
-      });
       if (dragTimer.current) {
         clearTimeout(dragTimer.current);
         dragTimer.current = null;
@@ -208,6 +196,15 @@ export function useTableDragDrop({
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
         if (!selectionRange) return;
+
+        const isSingleOrderCell =
+          selectionRange.start.rowId === selectionRange.end.rowId &&
+          selectionRange.start.colId === "order" &&
+          selectionRange.end.colId === "order";
+
+        if (isSingleOrderCell) {
+          return;
+        }
 
         // Find if cursor is currently focused on an editable text control
         const activeEl = document.activeElement;

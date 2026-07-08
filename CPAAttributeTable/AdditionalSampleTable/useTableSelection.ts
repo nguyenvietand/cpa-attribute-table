@@ -5,6 +5,7 @@ import {
   exportSelectionToTSV,
   exportAllToTSV,
 } from "./utils/clipboardHelper";
+import { SelectionRange } from "./useTableData";
 
 interface UseTableSelectionProps {
   rows: SampleRow[];
@@ -18,6 +19,7 @@ interface UseTableSelectionProps {
   onShowToast: (message: string) => void;
   activeRowId?: number | null;
   hasRangeSelection?: boolean;
+  selectionRange?: SelectionRange | null;
 }
 
 export function useTableSelection({
@@ -27,6 +29,7 @@ export function useTableSelection({
   onShowToast,
   activeRowId = null,
   hasRangeSelection = false,
+  selectionRange = null,
 }: UseTableSelectionProps) {
   const [selectedRowIds, setSelectedRowIds] = useState<Set<number>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
@@ -92,7 +95,17 @@ export function useTableSelection({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (hasRangeSelection) return; 
+      const shouldHandleRowCopy =
+        !hasRangeSelection ||
+        (
+          selectionRange?.start.rowId === selectionRange?.end.rowId &&
+          selectionRange?.start.colId === "order" &&
+          selectionRange?.end.colId === "order"
+        );
+
+      if (!shouldHandleRowCopy) {
+        return;
+      }
 
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
         const activeEl = document.activeElement;
