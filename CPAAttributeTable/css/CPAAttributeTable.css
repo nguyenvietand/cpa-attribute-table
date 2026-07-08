@@ -19,3 +19,9 @@
 .border-emerald-250 {
   border-color: #9fe5c8;
 }
+
+td input:not([type="checkbox"]),
+td select {
+    width: 100% !important;
+    box-sizing: border-box !important;
+}

@@ -470,7 +470,7 @@ export default function TableGrid({
                             onChange={(e) =>
                               onWeekChange(row.id, e.target.value)
                             }
-                            className="w-full h-full text-xs font-medium text-gray-700 bg-transparent border-0 px-1 focus:ring-0 outline-hidden"
+                            className="w-full h-10 text-xs font-medium text-gray-700 bg-transparent border-0 px-1 focus:ring-0 outline-hidden"
                           />
                         </div>
                       }
@@ -538,7 +538,7 @@ export default function TableGrid({
                     <td
                       onMouseDown={(e) => onCellMouseDown(e, row.id, "result")}
                       onMouseEnter={() => onCellMouseEnter(row.id, "result")}
-                      className={`${getCellClass("result")} focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-inset`}>
+                      className={getCellClass("result")}>
                       {selectionMode ?
                         <div
                           className={
@@ -555,8 +555,9 @@ export default function TableGrid({
                               e.target.value as "Pass" | "Fail" | "",
                             )
                           }
-                          className={`${getResultSelectClass(row.result)} ${isCellSelected(row.id, "result") || (activeRowId === row.id && activeColumnId === "result") ? "bg-transparent!" : ""
-                            }`}>
+                          className={`${getResultSelectClass(row.result)} ${
+                            isCellSelected(row.id, "result") || (activeRowId === row.id && activeColumnId === "result") ? "bg-transparent!" : ""
+                          }`}>
                           {row.result === "" && <option value=""> </option>}
                           <option value="Pass">Pass</option>
                           <option value="Fail">Fail</option>
