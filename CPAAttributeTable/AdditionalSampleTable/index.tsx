@@ -164,6 +164,11 @@ export default function AdditionalSampleTable({
     selectedRowIds,
     activeRowId,
     activeColumnId,
+
+
+    setActiveRowId,
+    setActiveColumnId,
+
     onCellClick: (rowId, colId) => {
       setActiveRowId(rowId);
       setActiveColumnId(colId);

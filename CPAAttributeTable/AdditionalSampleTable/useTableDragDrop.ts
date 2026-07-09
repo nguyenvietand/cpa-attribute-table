@@ -13,6 +13,10 @@ interface UseTableDragDropProps {
   selectedRowIds: Set<number>;
   activeRowId: number | null;
   activeColumnId: string | null;
+
+  setActiveRowId: React.Dispatch<React.SetStateAction<number | null>>;
+  setActiveColumnId: React.Dispatch<React.SetStateAction<string | null>>;
+
   onCellClick: (rowId: number | null, columnId: string | null) => void;
   onToggleRowSelection: (rowId: number) => void;
   onShowToast: (
@@ -30,6 +34,10 @@ interface UseTableDragDropProps {
 export function useTableDragDrop({
   rows,
   attributes,
+
+  setActiveRowId,
+  setActiveColumnId,
+
   onCellClick,
   onShowToast,
   selectionRange,
@@ -192,9 +200,72 @@ export function useTableDragDrop({
     }
   }, [selectionRange, rows, attributes, onShowToast]);
 
+  // Tab key down handler to move selection to the next cell
+  const allColumns = [
+    "order",
+    "week",
+    ...attributes.map(a => a.id),
+    "evidence",
+    "result",
+    "comment",
+  ];
+
+  const moveToNextCell = useCallback(() => {
+    if (!selectionRange) return;
+
+    const rowIndex = rows.findIndex(
+      r => r.id === selectionRange.end.rowId
+    );
+
+    const colIndex = allColumns.indexOf(
+      selectionRange.end.colId
+    );
+
+    if (rowIndex === -1 || colIndex === -1) return;
+
+    let nextRow = rowIndex;
+    let nextCol = colIndex + 1;
+
+    if (nextCol >= allColumns.length) {
+      nextCol = 0;
+      nextRow++;
+    }
+
+    if (nextRow >= rows.length) return;
+
+    const rowId = rows[nextRow].id;
+    const colId = allColumns[nextCol];
+
+    setSelectionRange({
+      start: { rowId, colId },
+      end: { rowId, colId },
+    });
+
+    setActiveRowId(rowId);
+    setActiveColumnId(colId);
+
+    onCellClick(rowId, colId);
+  }, [
+    rows,
+    allColumns,
+    selectionRange,
+    setSelectionRange,
+    setActiveRowId,
+    setActiveColumnId,
+    onCellClick,
+  ]);
+
   // Intercept the copy shortcut for Excel-like TSV formatting
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Handle Tab key for moving to the next cell
+      if (e.key === "Tab") {
+        if (!selectionRange) return;
+        e.preventDefault();
+        moveToNextCell();
+        return;
+      }
+
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
         if (!selectionRange) return;
 
@@ -243,7 +314,7 @@ export function useTableDragDrop({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectionRange, handleCopyRange]);
+  }, [selectionRange, handleCopyRange, moveToNextCell]);
 
   return {
     selectionRange,
