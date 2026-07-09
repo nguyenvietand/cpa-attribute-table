@@ -164,6 +164,19 @@ export default function TableGrid({
   const minRow = selectionRange ? Math.min(selStartRowIdx, selEndRowIdx) : -1;
   const maxRow = selectionRange ? Math.max(selStartRowIdx, selEndRowIdx) : -1;
 
+  useEffect(() => {
+    if (activeRowId == null || activeColumnId == null) return;
+
+    const cell = containerRef.current?.querySelector(
+      `[data-row-id="${activeRowId}"][data-col-id="${activeColumnId}"]`
+    ) as HTMLElement | null;
+
+    cell?.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+    });
+  }, [activeRowId, activeColumnId]);
+
   return (
     <div className="w-full flex flex-col">
       {selectionMode && (
@@ -397,7 +410,7 @@ export default function TableGrid({
                     cellClass = "ring-1! ring-blue-300/60! ring-inset! z-10! bg-blue-500/20!";
                   }
 
-                  return `${hasBorderRight ? "border-r border-gray-200" : ""} p-0 select-none transition relative focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-inset focus-within:z-10 ${cellClass}`;
+                  return `${hasBorderRight ? "border-r border-gray-200" : ""} p-0 select-none transition relative  ${cellClass}`;
                 };
 
                 return (
@@ -411,6 +424,8 @@ export default function TableGrid({
                     <td
                       onMouseDown={(e) => onCellMouseDown(e, row.id, "order")}
                       onMouseEnter={() => onCellMouseEnter(row.id, "order")}
+                      data-row-id={row.id}
+                      data-col-id="order"
                       className={`border-r border-gray-100 p-0 select-none transition relative ${isCellSelected(row.id, "order") ?
                         (activeRowId === row.id && activeColumnId === "order" ? "ring-2! ring-blue-600! ring-inset! z-20! bg-blue-50/70!" : "ring-1! ring-blue-300/60! ring-inset! z-10! bg-blue-500/20!")
                         : (isRowInSelection ? "bg-blue-500/5!" : "")
@@ -435,6 +450,8 @@ export default function TableGrid({
                     <td
                       onMouseDown={(e) => onCellMouseDown(e, row.id, "week")}
                       onMouseEnter={() => onCellMouseEnter(row.id, "week")}
+                      data-row-id={row.id}
+                      data-col-id="week"
                       className={getCellClass("week")}>
                       {selectionMode ?
                         <div className="w-full h-10 text-xs font-medium text-gray-700 flex items-center justify-center">
@@ -485,6 +502,8 @@ export default function TableGrid({
                           key={attr.id}
                           onMouseDown={(e) => onCellMouseDown(e, row.id, attr.id)}
                           onMouseEnter={() => onCellMouseEnter(row.id, attr.id)}
+                          data-row-id={row.id}
+                          data-col-id={attr.id}
                           className={getCellClass(attr.id)}>
                           {selectionMode ?
                             <div className="w-full h-10 text-xs font-medium text-gray-700 px-3 flex items-center">
@@ -507,6 +526,8 @@ export default function TableGrid({
                     <td
                       onMouseDown={(e) => onCellMouseDown(e, row.id, "evidence")}
                       onMouseEnter={() => onCellMouseEnter(row.id, "evidence")}
+                      data-row-id={row.id}
+                      data-col-id="evidence"
                       style={{
                         width: formatWidth(columnWidths?.evidence),
                         minWidth: formatWidth(columnWidths?.evidence),
@@ -539,6 +560,8 @@ export default function TableGrid({
                     <td
                       onMouseDown={(e) => onCellMouseDown(e, row.id, "result")}
                       onMouseEnter={() => onCellMouseEnter(row.id, "result")}
+                      data-row-id={row.id}
+                      data-col-id="result"
                       className={getCellClass("result")}
                     >
                       {selectionMode ? (
@@ -555,8 +578,8 @@ export default function TableGrid({
                             ]}
                             onChange={(val) => onResultChange(row.id, val as "Pass" | "Fail")}
                             className={`${getResultSelectClass(row.result || "Pass")} ${isCellSelected(row.id, "result") || (activeRowId === row.id && activeColumnId === "result")
-                                ? "bg-transparent!"
-                                : ""
+                              ? "bg-transparent!"
+                              : ""
                               }`}
                           />
                         </div>
@@ -567,6 +590,8 @@ export default function TableGrid({
                     <td
                       onMouseDown={(e) => onCellMouseDown(e, row.id, "comment")}
                       onMouseEnter={() => onCellMouseEnter(row.id, "comment")}
+                      data-row-id={row.id}
+                      data-col-id="comment"
                       className={getCellClass("comment", false)}>
                       {selectionMode ?
                         <div className="w-full h-10 text-xs font-medium text-gray-700 px-3 flex items-center">
