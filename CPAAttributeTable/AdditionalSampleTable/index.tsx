@@ -16,6 +16,7 @@ import EditRowDialog from "./EditRowDialog";
 import { useTableSelection } from "./useTableSelection";
 import { useTableData } from "./useTableData";
 import { useTableDragDrop } from "./useTableDragDrop";
+import AddRowsDialog from "./AddRowDialogs";
 
 export interface ColumnWidths {
   order?: string | number;
@@ -121,6 +122,7 @@ export default function AdditionalSampleTable({
     handleUpdateColumnHeader,
     handleToolbarPasteClick,
     handleAddDefaultRow,
+    handleAddDefaultRows,
     selectionRange,
     setSelectionRange,
     isSelecting,
@@ -348,13 +350,20 @@ export default function AdditionalSampleTable({
         </AccordionDetails>
       </Accordion>
 
-      {isAddRowOpen && (
+      {/* {isAddRowOpen && (
         <AddRowDialog
           open={isAddRowOpen}
           onClose={() => setIsAddRowOpen(false)}
           attributes={attributes}
           evidenceOptions={evidenceOptions}
           onAdd={handleAddRow}
+        />
+      )} */}
+      {isAddRowOpen && (
+        <AddRowsDialog
+          open={isAddRowOpen}
+          onClose={() => setIsAddRowOpen(false)}
+          onAdd={handleAddDefaultRows}
         />
       )}
 

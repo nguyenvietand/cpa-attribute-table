@@ -32,7 +32,7 @@ export function useTableData({
   initialColumnHeaders = DEFAULT_COLUMN_HEADERS,
   initialEvidenceOptions = [],
 }: UseTableDataProps) {
-  
+
   const getNextRowId = useCallback((sourceRows: SampleRow[]): number => {
     if (sourceRows.length === 0) return 1;
     const maxId = sourceRows.reduce(
@@ -104,7 +104,7 @@ export function useTableData({
               [attributeId]: value,
             },
           }
-        : row,
+          : row,
       ),
     );
   };
@@ -208,11 +208,11 @@ export function useTableData({
 
       const columnOrder = ["week", ...attributes.map((a) => a.id), "evidence", "result", "comment"];
       const startRowIdx = activeRowId !== null ? rows.findIndex((r) => r.id === activeRowId) : -1;
-      
+
       const targetColId =
         activeRowId !== null && (activeColumnId === null || activeColumnId === "order") ?
           "week"
-        : activeColumnId;
+          : activeColumnId;
       const startColIdx = targetColId !== null ? columnOrder.indexOf(targetColId) : -1;
 
       let adjustedGrid = grid;
@@ -612,6 +612,24 @@ export function useTableData({
     });
   };
 
+  // Add multiple default rows handler
+  const handleAddDefaultRows = (quantity: number) => {
+    const defaultAttributes: Record<string, string> = {};
+    attributes.forEach((attr) => {
+      defaultAttributes[attr.id] = "";
+    });
+
+    Array.from({ length: quantity }).forEach(() => {
+      handleAddRow({
+        week: "",
+        attributes: defaultAttributes,
+        evidence: "",
+        result: "",
+        comment: "",
+      });
+    });
+  };
+
   // Save edited row handler
   const handleSaveRow = (updatedRow: SampleRow) => {
     setRows(
@@ -749,6 +767,7 @@ export function useTableData({
     handleImportRows,
     handleOverrideRows,
     handleAddDefaultRow,
+    handleAddDefaultRows,
     handleSaveRow,
     handleDeleteRow,
     handleDeleteAttribute,
