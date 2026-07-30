@@ -119,6 +119,7 @@ export default function AdditionalSampleTable({
     handleDeleteAttribute,
     handleAddAttributeDirect,
     handleUpdateAttribute,
+    handleReorderAttributes,
     handleUpdateColumnHeader,
     handleToolbarPasteClick,
     handleAddDefaultRow,
@@ -321,6 +322,7 @@ export default function AdditionalSampleTable({
             onCommentChange={handleCommentChange}
             onAddAttribute={handleAddAttributeDirect}
             onUpdateAttribute={handleUpdateAttribute}
+            onReorderAttributes={handleReorderAttributes}
             columnHeaders={columnHeaders}
             onUpdateColumnHeader={handleUpdateColumnHeader}
             onEditClick={setEditingRow}

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { SampleRow, Attribute } from "./mockData";
+import { arrayMove } from "@dnd-kit/sortable";
 
 export interface SelectionRange {
   start: { rowId: number; colId: string };
@@ -698,6 +699,19 @@ export function useTableData({
     );
   };
 
+  // Reorder attributes list
+  const handleReorderAttributes = (activeId: string, overId: string) => {
+    setAttributes((prev) => {
+      const oldIndex = prev.findIndex((attr) => attr.id === activeId);
+      const newIndex = prev.findIndex((attr) => attr.id === overId);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+
+      const newAttributes = arrayMove(prev, oldIndex, newIndex);
+
+      return normalizeAttributeLayout(newAttributes);
+    });
+  };
+
   // Update column header inline
   const handleUpdateColumnHeader = (
     key: "week" | "evidence" | "result" | "comment",
@@ -773,6 +787,7 @@ export function useTableData({
     handleDeleteAttribute,
     handleAddAttributeDirect,
     handleUpdateAttribute,
+    handleReorderAttributes,
     handleUpdateColumnHeader,
     handleToolbarPasteClick,
     selectionRange,
