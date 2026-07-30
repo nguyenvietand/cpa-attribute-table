@@ -3,12 +3,28 @@ import { SampleRow, Attribute, ColumnWidths } from "./index";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { mergeEvidenceOptions, splitEvidenceValue, joinEvidenceValues } from "./evidenceUtils";
 import EvidenceMultiSelect from "./EvidenceMultiSelect";
 import ResultSingleSelect from "./ResultSingleSelect";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 
 interface TableGridProps {
+  onReorderAttributes?: (activeId: string, overId: string) => void;
   rows: SampleRow[];
   attributes: Attribute[];
   rowStartIndex: number;
@@ -52,7 +68,123 @@ interface TableGridProps {
   } | null;
 }
 
+interface SortableHeaderCellProps {
+  attr: Attribute;
+  idx: number;
+  columnWidths?: ColumnWidths;
+  formatWidth: (w?: string | number) => string | undefined;
+  onDeleteAttribute: (id: string) => void;
+  onUpdateAttribute: (id: string, updatedFields: Partial<Attribute>) => void;
+  onAddAttribute: (targetIndex?: number) => void;
+  handleMouseDown: (e: React.MouseEvent, columnId: string) => void;
+  hoveredCol: string | null;
+  setHoveredCol: (id: string | null) => void;
+}
+
+function SortableHeaderCell({
+  attr,
+  idx,
+  columnWidths,
+  formatWidth,
+  onDeleteAttribute,
+  onUpdateAttribute,
+  onAddAttribute,
+  handleMouseDown,
+  hoveredCol,
+  setHoveredCol,
+}: SortableHeaderCellProps) {
+  const {
+    attributes: dndAttributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: attr.id });
+
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    width: formatWidth(columnWidths?.[attr.id] ?? columnWidths?.attributes),
+    minWidth: formatWidth(columnWidths?.[attr.id] ?? columnWidths?.attributes),
+  };
+
+  return (
+    <th
+      ref={setNodeRef}
+      style={style}
+      onMouseEnter={() => setHoveredCol(attr.id)}
+      onMouseLeave={() => setHoveredCol(null)}
+      className={`group sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle ${
+        isDragging ? "bg-blue-50/50" : ""
+      }`}
+    >
+      <div className="relative flex flex-col w-full">
+        <div className="flex items-center justify-between w-full pr-4">
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <button
+              type="button"
+              onClick={() => onDeleteAttribute(attr.id)}
+              className="text-[#C00000] hover:text-[#900000] cursor-pointer flex items-center justify-center shrink-0"
+              title={`Delete ${attr.name}`}>
+              <DeleteIcon sx={{ fontSize: 14 }} />
+            </button>
+
+            {/* Drag Handle */}
+            <div
+              {...listeners}
+              {...dndAttributes}
+              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex items-center justify-center shrink-0"
+              title="Drag to reorder column"
+            >
+              <DragIndicatorIcon sx={{ fontSize: 16 }} />
+            </div>
+
+            <span className="text-xs font-bold text-gray-800 px-1 py-0.5 normal-case select-none truncate">
+              {attr.name}
+            </span>
+          </div>
+        </div>
+        <textarea
+          value={attr.description || attr.columnName || ""}
+          onChange={(e) =>
+            onUpdateAttribute(attr.id, {
+              description: e.target.value,
+              columnName: e.target.value,
+            })
+          }
+          aria-label={`Edit ${attr.name} description`}
+          placeholder="Enter description..."
+          rows={3}
+          className="text-[11px] text-gray-500 font-normal normal-case bg-transparent border border-transparent hover:border-gray-300 focus:border-gray-400 focus:bg-white outline-hidden rounded px-1.5 py-1 w-full mt-1.5 leading-snug resize-none overflow-y-auto"
+        />
+
+        <button
+          type="button"
+          onClick={() => onAddAttribute(idx + 1)}
+          onMouseEnter={() => setHoveredCol(attr.id)}
+          onMouseLeave={() => setHoveredCol(null)}
+          style={{
+            opacity: hoveredCol === attr.id ? 1 : 0,
+            transition: "opacity 150ms ease-in-out",
+          }}
+          className="z-30 absolute -right-3 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 w-5 h-5 rounded-full cursor-pointer flex items-center justify-center border border-emerald-250 bg-white shadow-xs"
+          title="Add Attribute Column">
+          <AddIcon sx={{ fontSize: 12 }} />
+        </button>
+      </div>
+      <div
+        onMouseDown={(e) => handleMouseDown(e, attr.id)}
+        className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize z-20 select-none transition-colors duration-150 flex items-center justify-center group/resize"
+        style={{ touchAction: "none" }}
+      ></div>
+    </th>
+  );
+}
+
 export default function TableGrid({
+  onReorderAttributes,
   rows,
   attributes,
   rowStartIndex,
@@ -89,6 +221,21 @@ export default function TableGrid({
   const prevRowsLength = useRef(rows.length);
   const [hoveredCol, setHoveredCol] = useState<string | null>(null);
   const [openEvidenceRowId, setOpenEvidenceRowId] = useState<number | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 4,
+      },
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id && onReorderAttributes) {
+      onReorderAttributes(active.id as string, over.id as string);
+    }
+  };
 
   const handleMouseDown = (e: React.MouseEvent, columnId: string) => {
     e.preventDefault();
@@ -141,7 +288,6 @@ export default function TableGrid({
     }
   }, [rows, openEvidenceRowId]);
 
-  // background for Attr
   const getResultSelectClass = (value: "Pass" | "Fail" | "") => {
     const baseClass =
       "w-full h-10 text-xs font-semibold px-3 transition-colors cursor-pointer appearance-none outline-hidden focus:outline-hidden border-0 focus:border-0 ring-0 focus:ring-0 shadow-none";
@@ -194,142 +340,84 @@ export default function TableGrid({
         className="overflow-y-auto overflow-x-auto w-full outline-none"
         style={{ maxHeight: formatWidth(maxHeight) }}>
         <div className="min-w-full w-max pr-3">
-          <table
-            className="min-w-full text-left border-collapse"
-            style={{ width: "max-content" }}>
-            <thead>
-              <tr>
-                <th
-                  style={{
-                    width: formatWidth(columnWidths?.order),
-                    minWidth: formatWidth(columnWidths?.order),
-                  }}
-                  className="sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 align-middle resize-">
-                  <div className="flex items-center gap-1.5 justify-center">
-                    <button
-                      type="button"
-                      className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAddRow();
-                        setTimeout(() => {
-                          if (containerRef.current) {
-                            containerRef.current.scrollTo({
-                              top: containerRef.current.scrollHeight,
-                              behavior: "smooth",
-                            });
-                          }
-                        }, 50);
-                      }}
-                    >
-                      <AddIcon sx={{ fontSize: 16 }} className="text-[#C00000] hover:text-green-800" />
-                    </button>
-                    <input
-                      type="checkbox"
-                      checked={
-                        rows.length > 0 && selectedRowIds.size === rows.length
-                      }
-                      onChange={onToggleAllSelection}
-                      className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer shrink-0"
-                      style={{ width: 14, height: 14, flex: '0 0 auto', display: 'block' }}
-                      title="Select/Deselect All Rows"
-                    />
-                  </div>
-                  <div
-                    onMouseDown={(e) => handleMouseDown(e, "order")}
-                    className="absolute right-0 top-0 bottom-0 w-2  cursor-col-resize z-20 select-none transition-colors duration-150 flex items-center justify-center group/resize"
-                    style={{ touchAction: "none" }}></div>
-                </th>
-                {/* Sample Week */}
-                <th
-                  style={{
-                    width: formatWidth(columnWidths?.week),
-                    minWidth: formatWidth(columnWidths?.week),
-                  }}
-                  onMouseEnter={() => setHoveredCol("week")}
-                  onMouseLeave={() => setHoveredCol(null)}
-                  className="group sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
-                  <div className="relative flex items-center justify-between w-full">
-                    <div className="flex items-center gap-1.5 flex-1 ">
-                      <input
-                        type="text"
-                        value={columnHeaders.week}
-                        onChange={(e) =>
-                          onUpdateColumnHeader("week", e.target.value)
-                        }
-                        className="text-xs font-bold text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:bg-white focus:ring-1  outline-hidden rounded px-1 py-0.5 w-full normal-case tracking-wider"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => onAddAttribute(0)}
-                      onMouseEnter={() => setHoveredCol("week")}
-                      onMouseLeave={() => setHoveredCol(null)}
-                      style={{
-                        opacity: hoveredCol === "week" ? 1 : 0,
-                        transition: "opacity 150ms ease-in-out",
-                      }}
-                      className="z-30 absolute -right-3 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 w-5 h-5 rounded-full cursor-pointer flex items-center justify-center border border-emerald-250 bg-white shadow-xs"
-                      title="Add Attribute Column">
-                      <AddIcon sx={{ fontSize: 12 }} />
-                    </button>
-                  </div>
-                  <div
-                    onMouseDown={(e) => handleMouseDown(e, "week")}
-                    className="absolute right-0 top-0 bottom-0 w-2  cursor-col-resize z-20 select-none transition-colors duration-150 flex items-center justify-center group/resize"
-                    style={{ touchAction: "none" }}></div>
-                </th>
-                {/* Dynamic Attributes */}
-                {attributes.map((attr, idx) => (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <table
+              className="min-w-full text-left border-collapse"
+              style={{ width: "max-content" }}>
+              <thead>
+                <tr>
                   <th
-                    key={attr.id}
                     style={{
-                      width: formatWidth(
-                        columnWidths?.[attr.id] ?? columnWidths?.attributes,
-                      ),
-                      minWidth: formatWidth(
-                        columnWidths?.[attr.id] ?? columnWidths?.attributes,
-                      ),
+                      width: formatWidth(columnWidths?.order),
+                      minWidth: formatWidth(columnWidths?.order),
                     }}
-                    onMouseEnter={() => setHoveredCol(attr.id)}
-                    onMouseLeave={() => setHoveredCol(null)}
-                    className="group sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
-                    <div className="relative flex flex-col w-full">
-                      <div className="flex items-center justify-between w-full pr-4">
-                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                          <button
-                            type="button"
-                            onClick={() => onDeleteAttribute(attr.id)}
-                            className="text-[#C00000] hover:text-[#900000] cursor-pointer flex items-center justify-center shrink-0"
-                            title={`Delete ${attr.name}`}>
-                            <DeleteIcon sx={{ fontSize: 14 }} />
-                          </button>
-                          <span className="text-xs font-bold text-gray-800 px-1 py-0.5 normal-case select-none truncate">
-                            {attr.name}
-                          </span>
-                        </div>
-                      </div>
-                      <textarea
-                        value={attr.description || attr.columnName || ""}
-                        onChange={(e) =>
-                          onUpdateAttribute(attr.id, {
-                            description: e.target.value,
-                            columnName: e.target.value,
-                          })
-                        }
-                        aria-label={`Edit ${attr.name} description`}
-                        placeholder="Enter description..."
-                        rows={3}
-                        className="text-[11px] text-gray-500 font-normal normal-case bg-transparent border border-transparent hover:border-gray-300 focus:border-gray-400 focus:bg-white outline-hidden rounded px-1.5 py-1 w-full mt-1.5 leading-snug resize-none overflow-y-auto"
-                      />
-
+                    className="sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 align-middle resize-">
+                    <div className="flex items-center gap-1.5 justify-center">
                       <button
                         type="button"
-                        onClick={() => onAddAttribute(idx + 1)}
-                        onMouseEnter={() => setHoveredCol(attr.id)}
+                        className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAddRow();
+                          setTimeout(() => {
+                            if (containerRef.current) {
+                              containerRef.current.scrollTo({
+                                top: containerRef.current.scrollHeight,
+                                behavior: "smooth",
+                              });
+                            }
+                          }, 50);
+                        }}
+                      >
+                        <AddIcon sx={{ fontSize: 16 }} className="text-[#C00000] hover:text-green-800" />
+                      </button>
+                      <input
+                        type="checkbox"
+                        checked={
+                          rows.length > 0 && selectedRowIds.size === rows.length
+                        }
+                        onChange={onToggleAllSelection}
+                        className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer shrink-0"
+                        style={{ width: 14, height: 14, flex: '0 0 auto', display: 'block' }}
+                        title="Select/Deselect All Rows"
+                      />
+                    </div>
+                    <div
+                      onMouseDown={(e) => handleMouseDown(e, "order")}
+                      className="absolute right-0 top-0 bottom-0 w-2  cursor-col-resize z-20 select-none transition-colors duration-150 flex items-center justify-center group/resize"
+                      style={{ touchAction: "none" }}></div>
+                  </th>
+                  {/* Sample Week */}
+                  <th
+                    style={{
+                      width: formatWidth(columnWidths?.week),
+                      minWidth: formatWidth(columnWidths?.week),
+                    }}
+                    onMouseEnter={() => setHoveredCol("week")}
+                    onMouseLeave={() => setHoveredCol(null)}
+                    className="group sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
+                    <div className="relative flex items-center justify-between w-full">
+                      <div className="flex items-center gap-1.5 flex-1 ">
+                        <input
+                          type="text"
+                          value={columnHeaders.week}
+                          onChange={(e) =>
+                            onUpdateColumnHeader("week", e.target.value)
+                          }
+                          className="text-xs font-bold text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:bg-white focus:ring-1  outline-hidden rounded px-1 py-0.5 w-full normal-case tracking-wider"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onAddAttribute(0)}
+                        onMouseEnter={() => setHoveredCol("week")}
                         onMouseLeave={() => setHoveredCol(null)}
                         style={{
-                          opacity: hoveredCol === attr.id ? 1 : 0,
+                          opacity: hoveredCol === "week" ? 1 : 0,
                           transition: "opacity 150ms ease-in-out",
                         }}
                         className="z-30 absolute -right-3 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 w-5 h-5 rounded-full cursor-pointer flex items-center justify-center border border-emerald-250 bg-white shadow-xs"
@@ -338,280 +426,301 @@ export default function TableGrid({
                       </button>
                     </div>
                     <div
-                      onMouseDown={(e) => handleMouseDown(e, attr.id)}
+                      onMouseDown={(e) => handleMouseDown(e, "week")}
                       className="absolute right-0 top-0 bottom-0 w-2  cursor-col-resize z-20 select-none transition-colors duration-150 flex items-center justify-center group/resize"
                       style={{ touchAction: "none" }}></div>
                   </th>
-                ))}
+                  {/* Dynamic Attributes */}
+                  <SortableContext
+                    items={attributes.map((a) => a.id)}
+                    strategy={horizontalListSortingStrategy}
+                  >
+                    {attributes.map((attr, idx) => (
+                      <SortableHeaderCell
+                        key={attr.id}
+                        attr={attr}
+                        idx={idx}
+                        columnWidths={columnWidths}
+                        formatWidth={formatWidth}
+                        onDeleteAttribute={onDeleteAttribute}
+                        onUpdateAttribute={onUpdateAttribute}
+                        onAddAttribute={onAddAttribute}
+                        handleMouseDown={handleMouseDown}
+                        hoveredCol={hoveredCol}
+                        setHoveredCol={setHoveredCol}
+                      />
+                    ))}
+                  </SortableContext>
 
-                {/* Supporting Evidence */}
-                <th
-                  style={{
-                    width: formatWidth(columnWidths?.evidence),
-                    minWidth: formatWidth(columnWidths?.evidence),
-                  }}
-                  className="sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
-                  <div className="px-1 py-0.5 text-gray-800 leading-normal select-none">
-                    Supporting Evidence per Attribute
-                  </div>
-                  <div
-                    onMouseDown={(e) => handleMouseDown(e, "evidence")}
-                    className="absolute right-0 top-0 bottom-0 w-2  cursor-col-resize z-20 select-none transition-colors duration-150 flex items-center justify-center group/resize"
-                    style={{ touchAction: "none" }}></div>
-                </th>
+                  {/* Supporting Evidence */}
+                  <th
+                    style={{
+                      width: formatWidth(columnWidths?.evidence),
+                      minWidth: formatWidth(columnWidths?.evidence),
+                    }}
+                    className="sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
+                    <div className="px-1 py-0.5 text-gray-800 leading-normal select-none">
+                      Supporting Evidence per Attribute
+                    </div>
+                    <div
+                      onMouseDown={(e) => handleMouseDown(e, "evidence")}
+                      className="absolute right-0 top-0 bottom-0 w-2  cursor-col-resize z-20 select-none transition-colors duration-150 flex items-center justify-center group/resize"
+                      style={{ touchAction: "none" }}></div>
+                  </th>
 
-                {/* Assessment Result */}
-                <th
-                  style={{
-                    width: formatWidth(columnWidths?.result),
-                    minWidth: formatWidth(columnWidths?.result),
-                  }}
-                  className="sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
-                  <div className="px-1 py-0.5 text-gray-800 leading-normal select-none">
-                    Control Sample Assessment Result (Pass/Fail)
-                  </div>
-                  <div
-                    onMouseDown={(e) => handleMouseDown(e, "result")}
-                    className=" touch-none absolute right-0 top-0 bottom-0 w-2  cursor-col-resize z-20 select-none transition-colors duration-150 flex items-center justify-center group/resize"></div>
-                </th>
+                  {/* Assessment Result */}
+                  <th
+                    style={{
+                      width: formatWidth(columnWidths?.result),
+                      minWidth: formatWidth(columnWidths?.result),
+                    }}
+                    className="sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
+                    <div className="px-1 py-0.5 text-gray-800 leading-normal select-none">
+                      Control Sample Assessment Result (Pass/Fail)
+                    </div>
+                    <div
+                      onMouseDown={(e) => handleMouseDown(e, "result")}
+                      className=" touch-none absolute right-0 top-0 bottom-0 w-2  cursor-col-resize z-20 select-none transition-colors duration-150 flex items-center justify-center group/resize"></div>
+                  </th>
 
-                {/* Comment */}
-                <th
-                  style={{
-                    width: formatWidth(columnWidths?.comment),
-                    minWidth: formatWidth(columnWidths?.comment),
-                  }}
-                  className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
-                  <div className="px-1 py-0.5 text-gray-800 leading-normal select-none">
-                    {columnHeaders.comment}
-                  </div>
-                  <div
-                    onMouseDown={(e) => handleMouseDown(e, "comment")}
-                    className=" touch-none absolute right-0 top-0 bottom-0 w-2  cursor-col-resize z-20 select-none transition-colors duration-150 flex items-center justify-center group/resize"></div>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, idx) => {
-                const isMultiCellRange = !!selectionRange && (selectionRange.start.rowId !== selectionRange.end.rowId || selectionRange.start.colId !== selectionRange.end.colId);
-                const isActive = activeRowId === row.id && !isMultiCellRange;
-                const isSelected = selectedRowIds.has(row.id);
-                const isRowInSelection = selectionRange && idx >= minRow && idx <= maxRow;
-                const getCellClass = (colId: string, hasBorderRight = true) => {
-                  const isActiveCell =
-                    activeRowId === row.id && activeColumnId === colId;
+                  {/* Comment */}
+                  <th
+                    style={{
+                      width: formatWidth(columnWidths?.comment),
+                      minWidth: formatWidth(columnWidths?.comment),
+                    }}
+                    className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
+                    <div className="px-1 py-0.5 text-gray-800 leading-normal select-none">
+                      {columnHeaders.comment}
+                    </div>
+                    <div
+                      onMouseDown={(e) => handleMouseDown(e, "comment")}
+                      className=" touch-none absolute right-0 top-0 bottom-0 w-2  cursor-col-resize z-20 select-none transition-colors duration-150 flex items-center justify-center group/resize"></div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, idx) => {
+                  const isMultiCellRange = !!selectionRange && (selectionRange.start.rowId !== selectionRange.end.rowId || selectionRange.start.colId !== selectionRange.end.colId);
+                  const isActive = activeRowId === row.id && !isMultiCellRange;
+                  const isSelected = selectedRowIds.has(row.id);
+                  const isRowInSelection = selectionRange && idx >= minRow && idx <= maxRow;
+                  const getCellClass = (colId: string, hasBorderRight = true) => {
+                    const isActiveCell =
+                      activeRowId === row.id && activeColumnId === colId;
 
-                  const isRangeSelected = isCellSelected(row.id, colId);
+                    const isRangeSelected = isCellSelected(row.id, colId);
 
-                  let cellClass = "";
-                  if (isActiveCell) {
-                    cellClass = "ring-2! ring-blue-600! ring-inset! z-20! bg-blue-50/70!";
-                  } else if (isRangeSelected) {
-                    cellClass = "ring-1! ring-blue-300/60! ring-inset! z-10! bg-blue-500/20!";
-                  }
+                    let cellClass = "";
+                    if (isActiveCell) {
+                      cellClass = "ring-2! ring-blue-600! ring-inset! z-20! bg-blue-50/70!";
+                    } else if (isRangeSelected) {
+                      cellClass = "ring-1! ring-blue-300/60! ring-inset! z-10! bg-blue-500/20!";
+                    }
 
-                  return `${hasBorderRight ? "border-r border-gray-200" : ""} p-0 select-none transition relative  ${cellClass}`;
-                };
+                    return `${hasBorderRight ? "border-r border-gray-200" : ""} p-0 select-none transition relative  ${cellClass}`;
+                  };
 
-                return (
-                  <tr
-                    key={row.id}
-                    className={`group border-b border-gray-200 last:border-0 transition-colors cursor-pointer ${isActive ? "bg-blue-50/70"
-                      : isSelected ? "bg-blue-100/30"
-                        : "hover:bg-gray-100/20"
-                      }`}>
-                    {/* Row Number & Checkbox (Col 0) */}
-                    <td
-                      onMouseDown={(e) => onCellMouseDown(e, row.id, "order")}
-                      onMouseEnter={() => onCellMouseEnter(row.id, "order")}
-                      data-row-id={row.id}
-                      data-col-id="order"
-                      className={`border-r border-gray-100 p-0 select-none transition relative ${isCellSelected(row.id, "order") ?
-                        (activeRowId === row.id && activeColumnId === "order" ? "ring-2! ring-blue-600! ring-inset! z-20! bg-blue-50/70!" : "ring-1! ring-blue-300/60! ring-inset! z-10! bg-blue-500/20!")
-                        : (isRowInSelection ? "bg-blue-500/5!" : "")
+                  return (
+                    <tr
+                      key={row.id}
+                      className={`group border-b border-gray-200 last:border-0 transition-colors cursor-pointer ${isActive ? "bg-blue-50/70"
+                        : isSelected ? "bg-blue-100/30"
+                          : "hover:bg-gray-100/20"
                         }`}>
-                      <div className="h-10 flex items-center gap-1.5 text-xs font-semibold text-gray-500 justify-center px-1">
-                        <input
-                          type="checkbox"
-                          checked={selectedRowIds.has(row.id)}
-                          onChange={() => onToggleRowSelection(row.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          className="w-3 h-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-                          style={{ width: 12, height: 12, flex: '0 0 auto', display: 'block' }}
-                        />
-                        <span className="min-w-3 text-center text-gray-800 font-bold">
-                          {rowStartIndex + idx + 1}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Week (Col 1) */}
-                    <td
-                      onMouseDown={(e) => onCellMouseDown(e, row.id, "week")}
-                      onMouseEnter={() => onCellMouseEnter(row.id, "week")}
-                      data-row-id={row.id}
-                      data-col-id="week"
-                      className={getCellClass("week")}>
-                      {selectionMode ?
-                        <div className="w-full h-10 text-xs font-medium text-gray-700 flex items-center justify-center">
-                          {row.week}
-                        </div>
-                        : <div className="flex items-center h-10 px-2 gap-1.5 text-gray-400 w-full">
-                          <div className="flex items-center gap-1 shrink-0">
-                            {/* Edit pencil icon */}
-                            <button
-                              type="button"
-                              className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEditClick(row);
-                              }}
-                            >
-                              <EditIcon sx={{ fontSize: 14, color: "red" }} />
-                            </button>
-                            {/* Trash icon */}
-                            <button
-                              type="button"
-                              className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDeleteRow(row.id);
-                              }}
-                            >
-                              <DeleteIcon sx={{ fontSize: 14, color: "red" }} />
-                            </button>
-                          </div>
+                      {/* Row Number & Checkbox (Col 0) */}
+                      <td
+                        onMouseDown={(e) => onCellMouseDown(e, row.id, "order")}
+                        onMouseEnter={() => onCellMouseEnter(row.id, "order")}
+                        data-row-id={row.id}
+                        data-col-id="order"
+                        className={`border-r border-gray-100 p-0 select-none transition relative ${isCellSelected(row.id, "order") ?
+                          (activeRowId === row.id && activeColumnId === "order" ? "ring-2! ring-blue-600! ring-inset! z-20! bg-blue-50/70!" : "ring-1! ring-blue-300/60! ring-inset! z-10! bg-blue-500/20!")
+                          : (isRowInSelection ? "bg-blue-500/5!" : "")
+                          }`}>
+                        <div className="h-10 flex items-center gap-1.5 text-xs font-semibold text-gray-500 justify-center px-1">
                           <input
-                            type="text"
-                            value={row.week}
-                            onChange={(e) =>
-                              onWeekChange(row.id, e.target.value)
-                            }
-                            className="w-full h-10 text-xs font-medium text-gray-700 bg-transparent border-0 px-1 focus:ring-0 outline-hidden"
+                            type="checkbox"
+                            checked={selectedRowIds.has(row.id)}
+                            onChange={() => onToggleRowSelection(row.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => e.stopPropagation()}
+                            className="w-3 h-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                            style={{ width: 12, height: 12, flex: '0 0 auto', display: 'block' }}
                           />
+                          <span className="min-w-3 text-center text-gray-800 font-bold">
+                            {rowStartIndex + idx + 1}
+                          </span>
                         </div>
-                      }
-                    </td>
+                      </td>
 
-                    {/* Dynamic Attributes (Col 2 ..N+1) */}
-                    {attributes.map((attr) => {
-                      const val = row.attributes[attr.id] || "";
-                      return (
-                        <td
-                          key={attr.id}
-                          onMouseDown={(e) => onCellMouseDown(e, row.id, attr.id)}
-                          onMouseEnter={() => onCellMouseEnter(row.id, attr.id)}
-                          data-row-id={row.id}
-                          data-col-id={attr.id}
-                          className={getCellClass(attr.id)}>
-                          {selectionMode ?
-                            <div className="w-full h-10 text-xs font-medium text-gray-700 px-3 flex items-center">
-                              {val}
+                      {/* Week (Col 1) */}
+                      <td
+                        onMouseDown={(e) => onCellMouseDown(e, row.id, "week")}
+                        onMouseEnter={() => onCellMouseEnter(row.id, "week")}
+                        data-row-id={row.id}
+                        data-col-id="week"
+                        className={getCellClass("week")}>
+                        {selectionMode ?
+                          <div className="w-full h-10 text-xs font-medium text-gray-700 flex items-center justify-center">
+                            {row.week}
+                          </div>
+                          : <div className="flex items-center h-10 px-2 gap-1.5 text-gray-400 w-full">
+                            <div className="flex items-center gap-1 shrink-0">
+                              {/* Edit pencil icon */}
+                              <button
+                                type="button"
+                                className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onEditClick(row);
+                                }}
+                              >
+                                <EditIcon sx={{ fontSize: 14, color: "red" }} />
+                              </button>
+                              {/* Trash icon */}
+                              <button
+                                type="button"
+                                className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteRow(row.id);
+                                }}
+                              >
+                                <DeleteIcon sx={{ fontSize: 14, color: "red" }} />
+                              </button>
                             </div>
-                            : <input
+                            <input
                               type="text"
-                              value={val}
+                              value={row.week}
                               onChange={(e) =>
-                                onAttrChange(row.id, attr.id, e.target.value)
+                                onWeekChange(row.id, e.target.value)
                               }
-                              className="w-full h-10 text-xs font-medium text-gray-700 bg-transparent border-0 px-3 focus:ring-0 outline-hidden"
+                              className="w-full h-10 text-xs font-medium text-gray-700 bg-transparent border-0 px-1 focus:ring-0 outline-hidden"
                             />
-                          }
-                        </td>
-                      );
-                    })}
+                          </div>
+                        }
+                      </td>
 
-                    {/* Supporting Evidence (Col N+2) */}
-                    <td
-                      onMouseDown={(e) => onCellMouseDown(e, row.id, "evidence")}
-                      onMouseEnter={() => onCellMouseEnter(row.id, "evidence")}
-                      data-row-id={row.id}
-                      data-col-id="evidence"
-                      style={{
-                        width: formatWidth(columnWidths?.evidence),
-                        minWidth: formatWidth(columnWidths?.evidence),
-                        maxWidth: formatWidth(columnWidths?.evidence),
-                      }}
-                      className={getCellClass("evidence")}>
-                      {selectionMode ?
-                        <div className="w-full h-10 text-xs font-semibold text-gray-700 px-3 flex items-center">
-                          {row.evidence}
-                        </div>
-                        : <div className="w-full h-10 min-w-0">
-                          <EvidenceMultiSelect
-                            value={row.evidence}
-                            options={mergeEvidenceOptions(row.evidence, evidenceOptions)}
-                            onChange={(nextValue) => onEvidenceChange(row.id, nextValue)}
-                            open={openEvidenceRowId === row.id}
-                            onOpenChange={(nextOpen) => {
-                              setOpenEvidenceRowId((prev) =>
-                                nextOpen ? row.id : prev === row.id ? null : prev,
-                              );
-                            }}
-                            compact
-                            label=""
+                      {/* Dynamic Attributes (Col 2 ..N+1) */}
+                      {attributes.map((attr) => {
+                        const val = row.attributes[attr.id] || "";
+                        return (
+                          <td
+                            key={attr.id}
+                            onMouseDown={(e) => onCellMouseDown(e, row.id, attr.id)}
+                            onMouseEnter={() => onCellMouseEnter(row.id, attr.id)}
+                            data-row-id={row.id}
+                            data-col-id={attr.id}
+                            className={getCellClass(attr.id)}>
+                            {selectionMode ?
+                              <div className="w-full h-10 text-xs font-medium text-gray-700 px-3 flex items-center">
+                                {val}
+                              </div>
+                              : <input
+                                type="text"
+                                value={val}
+                                onChange={(e) =>
+                                  onAttrChange(row.id, attr.id, e.target.value)
+                                }
+                                className="w-full h-10 text-xs font-medium text-gray-700 bg-transparent border-0 px-3 focus:ring-0 outline-hidden"
+                              />
+                            }
+                          </td>
+                        );
+                      })}
+
+                      {/* Supporting Evidence (Col N+2) */}
+                      <td
+                        onMouseDown={(e) => onCellMouseDown(e, row.id, "evidence")}
+                        onMouseEnter={() => onCellMouseEnter(row.id, "evidence")}
+                        data-row-id={row.id}
+                        data-col-id="evidence"
+                        style={{
+                          width: formatWidth(columnWidths?.evidence),
+                          minWidth: formatWidth(columnWidths?.evidence),
+                          maxWidth: formatWidth(columnWidths?.evidence),
+                        }}
+                        className={getCellClass("evidence")}>
+                        {selectionMode ?
+                          <div className="w-full h-10 text-xs font-semibold text-gray-700 px-3 flex items-center">
+                            {row.evidence}
+                          </div>
+                          : <div className="w-full h-10 min-w-0">
+                            <EvidenceMultiSelect
+                              value={row.evidence}
+                              options={mergeEvidenceOptions(row.evidence, evidenceOptions)}
+                              onChange={(nextValue) => onEvidenceChange(row.id, nextValue)}
+                              open={openEvidenceRowId === row.id}
+                              onOpenChange={(nextOpen) => {
+                                setOpenEvidenceRowId((prev) =>
+                                  nextOpen ? row.id : prev === row.id ? null : prev,
+                                );
+                              }}
+                              compact
+                              label=""
+                            />
+                          </div>
+                        }
+                      </td>
+
+                      {/* Assessment Result (Col N+3) */}
+                      <td
+                        onMouseDown={(e) => onCellMouseDown(e, row.id, "result")}
+                        onMouseEnter={() => onCellMouseEnter(row.id, "result")}
+                        data-row-id={row.id}
+                        data-col-id="result"
+                        className={getCellClass("result")}
+                      >
+                        {selectionMode ? (
+                          <div className={getResultSelectClass(row.result) + " flex items-center w-full h-full"}>
+                            {row.result || "Pass"}
+                          </div>
+                        ) : (
+                          <div className="w-full h-10 min-w-0">
+                            <ResultSingleSelect
+                              value={row.result || "Pass"}
+                              options={[
+                                { label: "Pass", value: "Pass", optionClass: "text-emerald-800" },
+                                { label: "Fail", value: "Fail", optionClass: "text-red-800" },
+                              ]}
+                              onChange={(val) => onResultChange(row.id, val as "Pass" | "Fail")}
+                              className={`${getResultSelectClass(row.result || "Pass")} ${isCellSelected(row.id, "result") || (activeRowId === row.id && activeColumnId === "result")
+                                ? "bg-transparent!"
+                                : ""
+                                }`}
+                            />
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Comment (Col N+4) */}
+                      <td
+                        onMouseDown={(e) => onCellMouseDown(e, row.id, "comment")}
+                        onMouseEnter={() => onCellMouseEnter(row.id, "comment")}
+                        data-row-id={row.id}
+                        data-col-id="comment"
+                        className={getCellClass("comment", false)}>
+                        {selectionMode ?
+                          <div className="w-full h-10 text-xs font-medium text-gray-700 px-3 flex items-center">
+                            {row.comment || ""}
+                          </div>
+                          : <input
+                            type="text"
+                            value={row.comment || ""}
+                            onChange={(e) =>
+                              onCommentChange(row.id, e.target.value)
+                            }
+                            className="w-full h-10 text-xs font-medium text-gray-700 bg-transparent border-0 px-3 focus:ring-0 outline-hidden"
                           />
-                        </div>
-                      }
-                    </td>
-
-                    {/* Assessment Result (Col N+3) */}
-                    <td
-                      onMouseDown={(e) => onCellMouseDown(e, row.id, "result")}
-                      onMouseEnter={() => onCellMouseEnter(row.id, "result")}
-                      data-row-id={row.id}
-                      data-col-id="result"
-                      className={getCellClass("result")}
-                    >
-                      {selectionMode ? (
-                        <div className={getResultSelectClass(row.result) + " flex items-center w-full h-full"}>
-                          {row.result || "Pass"}
-                        </div>
-                      ) : (
-                        <div className="w-full h-10 min-w-0">
-                          <ResultSingleSelect
-                            value={row.result || "Pass"}
-                            options={[
-                              { label: "Pass", value: "Pass", optionClass: "text-emerald-800" },
-                              { label: "Fail", value: "Fail", optionClass: "text-red-800" },
-                            ]}
-                            onChange={(val) => onResultChange(row.id, val as "Pass" | "Fail")}
-                            className={`${getResultSelectClass(row.result || "Pass")} ${isCellSelected(row.id, "result") || (activeRowId === row.id && activeColumnId === "result")
-                              ? "bg-transparent!"
-                              : ""
-                              }`}
-                          />
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Comment (Col N+4) */}
-                    <td
-                      onMouseDown={(e) => onCellMouseDown(e, row.id, "comment")}
-                      onMouseEnter={() => onCellMouseEnter(row.id, "comment")}
-                      data-row-id={row.id}
-                      data-col-id="comment"
-                      className={getCellClass("comment", false)}>
-                      {selectionMode ?
-                        <div className="w-full h-10 text-xs font-medium text-gray-700 px-3 flex items-center">
-                          {row.comment || ""}
-                        </div>
-                        : <input
-                          type="text"
-                          value={row.comment || ""}
-                          onChange={(e) =>
-                            onCommentChange(row.id, e.target.value)
-                          }
-                          className="w-full h-10 text-xs font-medium text-gray-700 bg-transparent border-0 px-3 focus:ring-0 outline-hidden"
-                        />
-                      }
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        }
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </DndContext>
         </div>
       </div>
     </div>
