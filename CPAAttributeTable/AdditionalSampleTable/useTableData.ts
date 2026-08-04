@@ -68,6 +68,9 @@ export function useTableData({
   // Dialog open state
   const [isAddRowOpen, setIsAddRowOpen] = useState(false);
 
+  // Copy & Paste dialog open state
+  const [isCopyPasteOpen, setIsCopyPasteOpen] = useState(false);
+
   // Editing row state
   const [editingRow, setEditingRow] = useState<SampleRow | null>(null);
 
@@ -733,6 +736,49 @@ export function useTableData({
     }
   };
 
+  // Paste a value into a range of rows for the selected attributes
+  const handlePasteToRange = (
+    fromRow: number,
+    toRow: number,
+    attributeIds: string[],
+    pasteContent: string,
+  ) => {
+    if (attributeIds.length === 0) {
+      setSnackbar({
+        open: true,
+        message: "Please select at least one attribute.",
+        severity: "warning",
+      });
+      return;
+    }
+
+    const start = Math.min(fromRow, toRow);
+    const end = Math.max(fromRow, toRow);
+
+    setRows((prevRows) =>
+      prevRows.map((row, idx) => {
+        const rowNumber = idx + 1; // khớp với rowStartIndex + idx + 1 khi rowStartIndex = 0
+        if (rowNumber < start || rowNumber > end) return row;
+
+        const updatedAttributes = { ...row.attributes };
+        attributeIds.forEach((attrId) => {
+          updatedAttributes[attrId] = pasteContent;
+        });
+
+        return {
+          ...row,
+          attributes: updatedAttributes,
+        };
+      }),
+    );
+
+    setSnackbar({
+      open: true,
+      message: `Successfully pasted value into row ${start} to ${end}!`,
+      severity: "success",
+    });
+  };
+
   // Sync logic when component mounts or initial props changes
   useEffect(() => {
     setRows(initialRows);
@@ -762,6 +808,8 @@ export function useTableData({
     columnHeaders,
     isAddRowOpen,
     setIsAddRowOpen,
+    isCopyPasteOpen,
+    setIsCopyPasteOpen,
     editingRow,
     setEditingRow,
     totalSamples,
@@ -788,6 +836,7 @@ export function useTableData({
     handleAddAttributeDirect,
     handleUpdateAttribute,
     handleReorderAttributes,
+    handlePasteToRange,
     handleUpdateColumnHeader,
     handleToolbarPasteClick,
     selectionRange,

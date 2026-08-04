@@ -9,6 +9,7 @@ import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 interface TableToolbarProps {
   onAddRowClick: () => void;
   onPasteClick: () => void;
+  onCopyPasteClick: () => void;
   selectionMode: boolean;
   onToggleSelectionMode: () => void;
   onCopySelection: () => void;
@@ -23,6 +24,7 @@ interface TableToolbarProps {
 export default function TableToolbar({
   onAddRowClick,
   onPasteClick,
+  onCopyPasteClick,
   onCopySelection,
   onCopyAll,
   hasSelection,
@@ -42,6 +44,15 @@ export default function TableToolbar({
           className="flex items-center gap-1 border border-red-200 text-[#C00000] px-3 py-1.5 rounded text-xs font-semibold hover:bg-red-50/50 active:scale-[0.98] transition-all cursor-pointer shadow-2xs">
           <AddIcon sx={{ fontSize: 14 }} />
           <span>Add Row</span>
+        </button>
+
+        {/* Copy & Paste Button */}
+        <button
+          type="button"
+          onClick={onCopyPasteClick}
+          className="flex items-center gap-1 border border-red-200 text-[#C00000] px-3 py-1.5 rounded text-xs font-semibold hover:bg-red-50/50 active:scale-[0.98] transition-all cursor-pointer shadow-2xs">
+          <ContentCopyIcon sx={{ fontSize: 14 }} />
+          <span>Copy &amp; Paste</span>
         </button>
 
         {/* Paste from Excel Button */}

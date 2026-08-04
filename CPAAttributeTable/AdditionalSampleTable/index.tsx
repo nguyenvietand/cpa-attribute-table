@@ -16,7 +16,8 @@ import EditRowDialog from "./EditRowDialog";
 import { useTableSelection } from "./useTableSelection";
 import { useTableData } from "./useTableData";
 import { useTableDragDrop } from "./useTableDragDrop";
-import AddRowsDialog from "./AddRowDialogs";
+import AddRowsDialog from "./AddRowsDialog";
+import CopyAndPasteDialog from "./CopyAndPasteDialog";
 
 export interface ColumnWidths {
   order?: string | number;
@@ -98,6 +99,8 @@ export default function AdditionalSampleTable({
     columnHeaders,
     isAddRowOpen,
     setIsAddRowOpen,
+    isCopyPasteOpen,
+    setIsCopyPasteOpen,
     editingRow,
     setEditingRow,
     totalSamples,
@@ -120,6 +123,7 @@ export default function AdditionalSampleTable({
     handleAddAttributeDirect,
     handleUpdateAttribute,
     handleReorderAttributes,
+    handlePasteToRange,
     handleUpdateColumnHeader,
     handleToolbarPasteClick,
     handleAddDefaultRow,
@@ -270,6 +274,21 @@ export default function AdditionalSampleTable({
     (activeColumnId === "order" || hasNoActiveCell) &&
     isSingleCellSelection;
 
+  const rowOptions = Array.from({ length: rows.length }, (_, i) => i + 1);
+  const attributeOptions = attributes.map((attr) => ({
+    id: attr.id,
+    name: attr.name,
+  }));
+
+   const handleCopyPasteApply = (data: {
+    fromRow: number;
+    toRow: number;
+    attributeIds: string[];
+    pasteContent: string;
+  }) => {
+    handlePasteToRange(data.fromRow, data.toRow, data.attributeIds, data.pasteContent);
+  };
+
   return (
     <div ref={containerRef} className="w-full flex flex-col border! border-gray-200! rounded-lg overflow-hidden bg-white!">
       <Accordion
@@ -294,6 +313,7 @@ export default function AdditionalSampleTable({
           <TableToolbar
             onAddRowClick={() => setIsAddRowOpen(true)}
             onPasteClick={handleToolbarPasteClick}
+            onCopyPasteClick={() => setIsCopyPasteOpen(true)}
             selectionMode={selectionMode}
             onToggleSelectionMode={toggleSelectionMode}
             onCopySelection={
@@ -366,6 +386,16 @@ export default function AdditionalSampleTable({
           open={isAddRowOpen}
           onClose={() => setIsAddRowOpen(false)}
           onAdd={handleAddDefaultRows}
+        />
+      )}
+
+      {isCopyPasteOpen && (
+        <CopyAndPasteDialog
+          open={isCopyPasteOpen}
+          onClose={() => setIsCopyPasteOpen(false)}
+          rowOptions={rowOptions}
+          attributeOptions={attributeOptions}
+          onApply={handleCopyPasteApply}
         />
       )}
 
