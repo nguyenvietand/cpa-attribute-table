@@ -275,12 +275,14 @@ export default function AdditionalSampleTable({
     isSingleCellSelection;
 
   const rowOptions = Array.from({ length: rows.length }, (_, i) => i + 1);
-  const attributeOptions = attributes.map((attr) => ({
-    id: attr.id,
-    name: attr.name,
-  }));
-
-   const handleCopyPasteApply = (data: {
+  const attributeOptions = [
+    { id: "week", name: columnHeaders.week },
+    ...attributes.map((attr) => ({ id: attr.id, name: attr.name })),
+    { id: "evidence", name: columnHeaders.evidence },
+    { id: "result", name: columnHeaders.result },
+    { id: "comment", name: columnHeaders.comment },
+  ];
+  const handleCopyPasteApply = (data: {
     fromRow: number;
     toRow: number;
     attributeIds: string[];

@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { SampleRow, Attribute } from "./mockData";
 import { arrayMove } from "@dnd-kit/sortable";
+import { splitEvidenceValue, joinEvidenceValues } from "./evidenceUtils";
 
 export interface SelectionRange {
   start: { rowId: number; colId: string };
@@ -740,13 +741,13 @@ export function useTableData({
   const handlePasteToRange = (
     fromRow: number,
     toRow: number,
-    attributeIds: string[],
+    columnIds: string[],
     pasteContent: string,
   ) => {
-    if (attributeIds.length === 0) {
+    if (columnIds.length === 0) {
       setSnackbar({
         open: true,
-        message: "Please select at least one attribute.",
+        message: "Please select at least one column.",
         severity: "warning",
       });
       return;
@@ -757,18 +758,49 @@ export function useTableData({
 
     setRows((prevRows) =>
       prevRows.map((row, idx) => {
-        const rowNumber = idx + 1; // khớp với rowStartIndex + idx + 1 khi rowStartIndex = 0
+        const rowNumber = idx + 1;
         if (rowNumber < start || rowNumber > end) return row;
 
-        const updatedAttributes = { ...row.attributes };
-        attributeIds.forEach((attrId) => {
-          updatedAttributes[attrId] = pasteContent;
+        const updatedRow: SampleRow = {
+          ...row,
+          attributes: { ...row.attributes },
+        };
+
+        columnIds.forEach((colId) => {
+          if (colId === "week") {
+            updatedRow.week = pasteContent;
+          } else if (colId === "evidence") {
+            const pastedValues = splitEvidenceValue(pasteContent);
+            const matchedValues: string[] = [];
+            pastedValues.forEach((pv) => {
+              const matchedOption = evidenceOptions.find(
+                (opt) => opt.toLowerCase() === pv.toLowerCase(),
+              );
+              if (matchedOption && !matchedValues.includes(matchedOption)) {
+                matchedValues.push(matchedOption);
+              }
+            });
+            if (matchedValues.length > 0) {
+              updatedRow.evidence = joinEvidenceValues(matchedValues);
+            }
+          } else if (colId === "result") {
+            if (/^pass$/i.test(pasteContent)) {
+              updatedRow.result = "Pass";
+            } else if (/^fail$/i.test(pasteContent)) {
+              updatedRow.result = "Fail";
+            }
+          } else if (colId === "comment") {
+            updatedRow.comment = pasteContent;
+          } else {
+            // attribute column
+            let cleanVal = pasteContent;
+            if (/^pass$/i.test(pasteContent)) cleanVal = "Pass";
+            else if (/^fail$/i.test(pasteContent)) cleanVal = "Fail";
+            updatedRow.attributes[colId] = cleanVal;
+          }
         });
 
-        return {
-          ...row,
-          attributes: updatedAttributes,
-        };
+        return updatedRow;
       }),
     );
 
