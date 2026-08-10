@@ -1,10 +1,5 @@
 import { SampleRow, Attribute } from "../mockData";
 
-export interface SelectionRange {
-  start: { rowId: number; colId: string };
-  end: { rowId: number; colId: string };
-}
-
 export interface PasteResult {
   updatedRows?: SampleRow[];
   newRowsToImport?: Omit<SampleRow, "id">[];
@@ -13,25 +8,32 @@ export interface PasteResult {
   severity?: "success" | "error" | "warning";
 }
 
+function getNextRowId(sourceRows: SampleRow[]): number {
+  if (sourceRows.length === 0) return 1;
+  const maxId = sourceRows.reduce(
+    (max, row) => (Number.isFinite(row.id) && row.id > max ? row.id : max),
+    Number.NEGATIVE_INFINITY,
+  );
+  return Number.isFinite(maxId) ? maxId + 1 : 1;
+}
+
 /**
  * Parses and processes TSV data pasted from the clipboard (e.g. Excel).
+ * Pure function mirror of useTableData.ts's handleDirectPaste — no React
+ * state, so it can be unit tested directly.
  */
 export function processPaste(
   text: string,
   rows: SampleRow[],
   attributes: Attribute[],
-  selectionRange: SelectionRange | null,
   activeRowId: number | null,
-  activeColumnId: string | null
+  activeColumnId: string | null,
 ): PasteResult {
   if (!text) return {};
 
-  // Split clipboard data into lines and cells (TSV format from Excel)
   const lines = text.split(/\r?\n/);
-  const grid: string[][] = lines
-    .map((line) => line.split("\t").map((cell) => cell.trim()));
+  const grid: string[][] = lines.map((line) => line.split("\t").map((cell) => cell.trim()));
 
-  // Trim empty lines from the end of the grid:
   while (
     grid.length > 0 &&
     (grid[grid.length - 1].length === 0 ||
@@ -42,27 +44,15 @@ export function processPaste(
 
   if (grid.length === 0) return {};
 
-  const columnOrder = ["week", ...attributes.map((a) => a.id), "evidence", "result"];
-  const startRowIdx = selectionRange
-    ? Math.min(rows.findIndex((r) => r.id === selectionRange.start.rowId), rows.findIndex((r) => r.id === selectionRange.end.rowId))
-    : (activeRowId !== null ? rows.findIndex((r) => r.id === activeRowId) : -1);
+  const columnOrder = ["week", ...attributes.map((a) => a.id), "evidence", "result", "comment"];
+  const startRowIdx = activeRowId !== null ? rows.findIndex((r) => r.id === activeRowId) : -1;
 
-  // If we clicked on the order column (activeColumnId is "order" or null), we shift the paste starting column to "week"
   const targetColId =
-    activeRowId !== null && (activeColumnId === null || activeColumnId === "order") ?
-      "week"
-    : activeColumnId;
+    activeRowId !== null && (activeColumnId === null || activeColumnId === "order")
+      ? "week"
+      : activeColumnId;
+  const startColIdx = targetColId !== null ? columnOrder.indexOf(targetColId) : -1;
 
-  let startColIdx = -1;
-  if (selectionRange) {
-    const selStartColId = selectionRange.start.colId === "order" || selectionRange.end.colId === "order" ? "week" : selectionRange.start.colId;
-    const selEndColId = selectionRange.start.colId === "order" || selectionRange.end.colId === "order" ? "week" : selectionRange.end.colId;
-    startColIdx = Math.min(columnOrder.indexOf(selStartColId), columnOrder.indexOf(selEndColId));
-  } else if (targetColId !== null) {
-    startColIdx = columnOrder.indexOf(targetColId);
-  }
-
-  // Handle the case where the user clicks the "order" column and pastes a row containing the order/row index column.
   let adjustedGrid = grid;
   if (activeColumnId === "order" && grid.length > 0 && grid[0].length > 1) {
     const firstCell = grid[0][0].toLowerCase();
@@ -72,30 +62,7 @@ export function processPaste(
     }
   }
 
-  // If a multi-cell selection range is active, verify that pasted data dimensions do not exceed the selected range
-  const isMultiCellRange = selectionRange && (selectionRange.start.rowId !== selectionRange.end.rowId || selectionRange.start.colId !== selectionRange.end.colId);
-  if (isMultiCellRange) {
-    const selStartRowIdx = rows.findIndex((r) => r.id === selectionRange.start.rowId);
-    const selEndRowIdx = rows.findIndex((r) => r.id === selectionRange.end.rowId);
-    const targetH = Math.abs(selStartRowIdx - selEndRowIdx) + 1;
-
-    const allColumns = ["order", "week", ...attributes.map((a) => a.id), "evidence", "result"];
-    const selStartColIdx = allColumns.indexOf(selectionRange.start.colId);
-    const selEndColIdx = allColumns.indexOf(selectionRange.end.colId);
-    const targetW = Math.abs(selStartColIdx - selEndColIdx) + 1;
-
-    const pastedRows = adjustedGrid.length;
-    const pastedCols = Math.max(...adjustedGrid.map((r) => r.length));
-
-    if (pastedRows > targetH || pastedCols > targetW) {
-      return {
-        message: "Cannot copy due to exceed copy range",
-        severity: "error",
-      };
-    }
-  }
-
-  // Flexible cell-level paste (if an active cell is selected)
+  // ---- Flexible cell-level paste (an active cell is selected) ----
   if (startRowIdx !== -1 && startColIdx !== -1) {
     const pastedRows = adjustedGrid.length;
     const pastedCols = Math.max(...adjustedGrid.map((r) => r.length));
@@ -112,29 +79,23 @@ export function processPaste(
     const isMultiCell = adjustedGrid.length > 1 || adjustedGrid.some((row) => row.length > 1);
 
     if (!isMultiCell) {
-      // Single cell paste
       const targetVal = adjustedGrid[0][0];
-      const targetColId = columnOrder[startColIdx];
+      const currentTargetColId = columnOrder[startColIdx];
       const updatedRows = rows.map((row, idx) => {
         if (idx !== startRowIdx) return row;
-        if (targetColId === "week") {
+        if (currentTargetColId === "week") {
           return { ...row, week: targetVal };
-        } else if (targetColId === "evidence") {
-          let cleanVal = targetVal;
-          if (/^[a-zA-Z]$/.test(targetVal)) {
-            cleanVal = targetVal.toUpperCase();
-          }
-          return { ...row, evidence: cleanVal };
-        } else if (targetColId === "result") {
-          let cleanVal: "Pass" | "Fail" | "" = "Pass";
+        } else if (currentTargetColId === "evidence") {
+          return { ...row, evidence: targetVal };
+        } else if (currentTargetColId === "result") {
+          let cleanVal: "Pass" | "Fail" = "Pass";
           if (/^fail$/i.test(targetVal)) {
             cleanVal = "Fail";
-          } else if (targetVal === "") {
-            cleanVal = "";
           }
           return { ...row, result: cleanVal };
+        } else if (currentTargetColId === "comment") {
+          return { ...row, comment: targetVal };
         } else {
-          // dynamic attribute column
           let cleanVal = targetVal;
           if (/^pass$/i.test(cleanVal)) {
             cleanVal = "Pass";
@@ -145,51 +106,59 @@ export function processPaste(
             ...row,
             attributes: {
               ...row.attributes,
-              [targetColId]: cleanVal,
+              [currentTargetColId]: cleanVal,
             },
           };
         }
       });
+
       return {
         updatedRows,
         message: "Successfully pasted value to the selected cell!",
         severity: "success",
       };
     } else {
-      // Excel table/multi-cell paste starting from the clicked cell downwards and rightwards
       const updatedRows = [...rows];
+      let nextId = getNextRowId(updatedRows);
+
       adjustedGrid.forEach((gridRow, r) => {
         const targetRowIdx = startRowIdx + r;
 
         if (targetRowIdx >= updatedRows.length) {
-          return;
+          const defaultAttributes: Record<string, string> = {};
+          attributes.forEach((attr) => {
+            defaultAttributes[attr.id] = "";
+          });
+          updatedRows.push({
+            id: nextId++,
+            week: "",
+            attributes: defaultAttributes,
+            evidence: "",
+            result: "Pass",
+            comment: "",
+          });
         }
 
         const rowToUpdate = { ...updatedRows[targetRowIdx] };
         rowToUpdate.attributes = { ...rowToUpdate.attributes };
 
         gridRow.forEach((cellVal, c) => {
-          const targetColIdx = startColIdx + c;
-          if (targetColIdx < columnOrder.length) {
-            const colId = columnOrder[targetColIdx];
+          const innerTargetColIdx = startColIdx + c;
+          if (innerTargetColIdx < columnOrder.length) {
+            const colId = columnOrder[innerTargetColIdx];
             if (colId === "week") {
               rowToUpdate.week = cellVal;
             } else if (colId === "evidence") {
-              let cleanVal = cellVal;
-              if (/^[a-zA-Z]$/.test(cellVal)) {
-                cleanVal = cellVal.toUpperCase();
-              }
-              rowToUpdate.evidence = cleanVal;
+              rowToUpdate.evidence = cellVal;
             } else if (colId === "result") {
-              let cleanVal: "Pass" | "Fail" | "" = "Pass";
+              let cleanVal: "Pass" | "Fail" = "Pass";
               if (/^fail$/i.test(cellVal)) {
                 cleanVal = "Fail";
-              } else if (cellVal === "") {
-                cleanVal = "";
               }
               rowToUpdate.result = cleanVal;
+            } else if (colId === "comment") {
+              rowToUpdate.comment = cellVal;
             } else {
-              // Dynamic attribute
               let cleanVal = cellVal;
               if (/^pass$/i.test(cellVal)) {
                 cleanVal = "Pass";
@@ -206,16 +175,16 @@ export function processPaste(
 
       return {
         updatedRows,
-        message: `Successfully pasted and overrode cell range starting from selected cell!`,
+        message: "Successfully pasted and overrode cell range starting from selected cell!",
         severity: "success",
       };
     }
   }
 
+  // ---- FALLBACK TO ROW-LEVEL OVERRIDE BEHAVIOR ----
   const filteredGrid = grid.filter((row) => row.length > 0 && row.some((cell) => cell !== ""));
   if (filteredGrid.length === 0) return {};
 
-  // detect if the first row is a header row by checking keywords
   let dataStartIndex = 0;
   const firstRow = filteredGrid[0];
   const looksLikeHeader = firstRow.some((cell) => {
@@ -225,7 +194,8 @@ export function processPaste(
       lower.includes("order") ||
       lower.includes("evidence") ||
       lower.includes("result") ||
-      lower.includes("attribute")
+      lower.includes("attribute") ||
+      lower.includes("comment")
     );
   });
 
@@ -239,6 +209,7 @@ export function processPaste(
     | { type: "attribute"; attributeId: string }
     | { type: "evidence" }
     | { type: "result" }
+    | { type: "comment" }
     | { type: "unknown" };
 
   const headerMappings: ColumnMapping[] = [];
@@ -254,6 +225,8 @@ export function processPaste(
         headerMappings.push({ type: "evidence" });
       } else if (lower.includes("result") || lower.includes("assess") || lower.includes("pass/fail")) {
         headerMappings.push({ type: "result" });
+      } else if (lower.includes("comment")) {
+        headerMappings.push({ type: "comment" });
       } else {
         const matchedAttr = attributes.find((attr) => {
           const attrNameLower = attr.name.toLowerCase();
@@ -270,9 +243,10 @@ export function processPaste(
           const match = lower.match(/attr(ibute)?\s*(\d+)/i);
           if (match) {
             const num = match[2];
-            const matchedAttrByNum = attributes.find((attr) =>
-              attr.name.toLowerCase().includes(`attribute ${num}`) ||
-              attr.name.toLowerCase().includes(`attr ${num}`)
+            const matchedAttrByNum = attributes.find(
+              (attr) =>
+                attr.name.toLowerCase().includes(`attribute ${num}`) ||
+                attr.name.toLowerCase().includes(`attr ${num}`),
             );
             if (matchedAttrByNum) {
               headerMappings.push({ type: "attribute", attributeId: matchedAttrByNum.id });
@@ -289,16 +263,22 @@ export function processPaste(
 
   for (let i = dataStartIndex; i < filteredGrid.length; i++) {
     const cells = filteredGrid[i];
-
-    if (cells.length < 3) {
-      continue;
-    }
+    if (cells.length < 3) continue;
 
     let rowMappings = headerMappings;
 
     if (!looksLikeHeader) {
+      // Tổng số cột kỳ vọng: week + attributes + evidence + result + comment
+      const expectedColsWithoutOrder = 1 + attributes.length + 3;
+      const expectedColsWithOrder = expectedColsWithoutOrder + 1;
+
       let hasIdColumn = false;
-      if (cells.length >= 5 && /^\d+$/.test(cells[0])) {
+      if (cells.length === expectedColsWithOrder && /^\d+$/.test(cells[0])) {
+        hasIdColumn = true;
+      } else if (cells.length === expectedColsWithoutOrder) {
+        hasIdColumn = false;
+      } else if (cells.length >= 5 && /^\d+$/.test(cells[0])) {
+        // Không khớp số cột kỳ vọng nào -> fallback về cách đoán cũ
         const secondCellLower = cells[1].toLowerCase();
         const isSecondCellAttribute =
           secondCellLower === "pass" ||
@@ -312,12 +292,10 @@ export function processPaste(
 
       const colOffset = hasIdColumn ? 1 : 0;
       rowMappings = [];
-      if (hasIdColumn) {
-        rowMappings.push({ type: "order" });
-      }
+      if (hasIdColumn) rowMappings.push({ type: "order" });
       rowMappings.push({ type: "week" });
 
-      const pastedAttrCount = cells.length - (colOffset + 1 + 2);
+      const pastedAttrCount = cells.length - (colOffset + 1 + 3);
       for (let idx = 0; idx < pastedAttrCount; idx++) {
         if (idx < attributes.length) {
           rowMappings.push({ type: "attribute", attributeId: attributes[idx].id });
@@ -328,6 +306,7 @@ export function processPaste(
 
       rowMappings.push({ type: "evidence" });
       rowMappings.push({ type: "result" });
+      rowMappings.push({ type: "comment" });
     }
 
     const attrRecord: Record<string, string> = {};
@@ -338,6 +317,7 @@ export function processPaste(
     let weekVal = "";
     let rawEvidenceVal = "";
     let rawResultVal = "";
+    let rawCommentVal = "";
 
     cells.forEach((cell, cellIdx) => {
       if (cellIdx < rowMappings.length) {
@@ -349,6 +329,8 @@ export function processPaste(
           rawEvidenceVal = trimmed;
         } else if (mapping.type === "result") {
           rawResultVal = trimmed;
+        } else if (mapping.type === "comment") {
+          rawCommentVal = trimmed;
         } else if (mapping.type === "attribute") {
           let cleanVal = trimmed;
           if (/^pass$/i.test(trimmed)) {
@@ -361,32 +343,27 @@ export function processPaste(
       }
     });
 
-    const isWeekEmpty = weekVal === "";
-    const isEvidenceEmpty = rawEvidenceVal === "";
-    const isResultEmpty = rawResultVal === "";
-    const isAttributesEmpty = Object.values(attrRecord).every((val) => val === "");
-
-    if (isWeekEmpty && isEvidenceEmpty && isResultEmpty && isAttributesEmpty) {
+    if (
+      weekVal === "" &&
+      rawEvidenceVal === "" &&
+      rawResultVal === "" &&
+      rawCommentVal === "" &&
+      Object.values(attrRecord).every((val) => val === "")
+    ) {
       continue;
     }
 
-    let cleanEvidenceVal = rawEvidenceVal;
-    if (/^[a-zA-Z]$/.test(rawEvidenceVal)) {
-      cleanEvidenceVal = rawEvidenceVal.toUpperCase();
-    }
-
-    let cleanResultVal: "Pass" | "Fail" | "" = "Pass";
+    let cleanResultVal: "Pass" | "Fail" = "Pass";
     if (/^fail$/i.test(rawResultVal)) {
       cleanResultVal = "Fail";
-    } else if (rawResultVal === "") {
-      cleanResultVal = "";
     }
 
     newRowsData.push({
       week: weekVal,
       attributes: attrRecord,
-      evidence: cleanEvidenceVal,
+      evidence: rawEvidenceVal,
       result: cleanResultVal,
+      comment: rawCommentVal,
     });
   }
 
