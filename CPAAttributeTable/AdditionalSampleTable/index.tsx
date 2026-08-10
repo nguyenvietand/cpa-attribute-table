@@ -90,6 +90,8 @@ export default function AdditionalSampleTable({
   columnWidths,
 }: AdditionalSampleTableProps) {
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const {
     isExpanded,
     setIsExpanded,
@@ -136,7 +138,8 @@ export default function AdditionalSampleTable({
     initialRows,
     initialAttributes,
     initialColumnHeaders,
-    initialEvidenceOptions
+    initialEvidenceOptions,
+    containerRef,
   });
 
   const {
@@ -190,7 +193,6 @@ export default function AdditionalSampleTable({
   });
 
   const resolvedMaxHeight = maxHeight ?? DEFAULT_TABLE_CONFIG.maxHeight;
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const [prevColumnWidths, setPrevColumnWidths] = React.useState(columnWidths);
   const [currentColumnWidths, setCurrentColumnWidths] =
