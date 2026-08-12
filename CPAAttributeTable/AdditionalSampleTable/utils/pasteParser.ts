@@ -71,7 +71,7 @@ export function processPaste(
 
     if (pastedRows > remainingRows || pastedCols > remainingCols) {
       return {
-        message: "Cannot paste: content exceeds the available range",
+        message: "Cannot paste because content exceeds the available range.",
         severity: "error",
       };
     }
