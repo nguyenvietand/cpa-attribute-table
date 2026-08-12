@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { SampleRow, Attribute } from "./mockData";
 import { arrayMove } from "@dnd-kit/sortable";
 import { splitEvidenceValue, joinEvidenceValues } from "./evidenceUtils";
-import { setActiveTableContainer, getActiveTableContainer } from "./activeTableRegistry";
+import { setActiveTableContainer, getActiveTableContainer, subscribeActiveTableContainer } from "./activeTableRegistry";
 import { processPaste } from "./utils/pasteParser";
 
 export interface SelectionRange {
@@ -237,6 +237,7 @@ export function useTableData({
     }
   };
 
+  // Set the active table container when the user interacts with this table
   useEffect(() => {
     const container = containerRef?.current;
     if (!container) return;
@@ -250,6 +251,22 @@ export function useTableData({
       container.removeEventListener("mousedown", markActive);
       container.removeEventListener("focusin", markActive);
     };
+  }, [containerRef]);
+
+  // Clear selection when another table becomes active
+  useEffect(() => {
+    const unsubscribe = subscribeActiveTableContainer((activeEl) => {
+      const container = containerRef?.current;
+      if (!container) return;
+
+      if (activeEl !== container) {
+        setSelectionRange(null);
+        setActiveRowId(null);
+        setActiveColumnId(null);
+      }
+    });
+
+    return unsubscribe;
   }, [containerRef]);
 
   // Keyboard shortcut listener for Ctrl + V
@@ -305,7 +322,7 @@ export function useTableData({
       week: "",
       attributes: defaultAttributes,
       evidence: "",
-      result: "",
+      result: "Pass",
       comment: "",
     });
   };
@@ -322,7 +339,7 @@ export function useTableData({
         week: "",
         attributes: defaultAttributes,
         evidence: "",
-        result: "",
+        result: "Pass",
         comment: "",
       });
     });
@@ -366,7 +383,7 @@ export function useTableData({
       id: newId,
       name: "",
       columnName: "",
-      description: "Enter description...",
+      description: "",
       order: insertIdx + 2,
     };
 
