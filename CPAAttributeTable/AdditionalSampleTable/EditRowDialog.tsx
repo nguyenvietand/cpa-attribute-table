@@ -77,7 +77,7 @@ export default function EditRowDialog({
             </label>
             <input
               type="text"
-              placeholder="e.g. 11/23/2025"
+              placeholder=""
               value={week}
               onChange={(e) => {
                 setWeek(e.target.value);

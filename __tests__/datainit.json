@@ -1,0 +1,65 @@
+{
+  "cells": [
+    {
+      "ColumnName": "Sample ID",
+      "Id": 1,
+      "Order": 1,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "",
+      "Id": 1,
+      "Order": 2,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "",
+      "Id": 1,
+      "Order": 3,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "",
+      "Id": 1,
+      "Order": 4,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Supporting Evidence per Attribute",
+      "Id": 1,
+      "Order": 1001,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Control Sample Assessment Result (Pass/Fail)",
+      "Id": 1,
+      "Order": 1002,
+      "Value": "",
+      "WP_ID": null
+    },
+    {
+      "ColumnName": "Comment",
+      "Id": 1,
+      "Order": 1003,
+      "Value": "",
+      "WP_ID": null
+    }
+  ],
+  "headers": [
+    { "ColumnName": "Sample ID", "Order": 1 },
+    { "ColumnName": "", "Order": 2 },
+    { "ColumnName": "", "Order": 3 },
+    { "ColumnName": "", "Order": 4 },
+    { "ColumnName": "Supporting Evidence per Attribute", "Order": 1001 },
+    { "ColumnName": "Control Sample Assessment Result (Pass/Fail)", "Order": 1002 },
+    { "ColumnName": "Comment", "Order": 1003 }
+  ],
+  "rows": [
+    { "Id": 1 }
+  ]
+}

@@ -58,11 +58,11 @@ const RESULT_COLUMN_NAME = 'Control Sample Assessment Result (Pass/Fail)';
 const SAMPLE_ID_COLUMN_NAME = 'Sample ID';
 const COMMENT_COLUMN_NAME = 'Comment';
 
-function normalizeResult(value: string | undefined): 'Pass' | 'Fail' | '' {
+function normalizeResult(value: string | undefined): 'Pass' | 'Fail' {
     const normalized = (value ?? '').trim();
     if (/^pass$/i.test(normalized)) return 'Pass';
     if (/^fail$/i.test(normalized)) return 'Fail';
-    return '';
+    return 'Pass';
 }
 
 function normalizeHeaderColumnName(value: string | undefined): string {
@@ -124,7 +124,7 @@ function buildInitialState(dataJSONString: string): {
             ColumnName: normalizeHeaderColumnName(header.ColumnName),
             Order: Number(header.Order),
         }))
-        .filter((header) => header.ColumnName && Number.isFinite(header.Order))
+        .filter((header) => Number.isFinite(header.Order))
         .sort((a, b) => a.Order - b.Order);
 
     const weekHeader = normalizedHeaders.find((header) => header.Order === 1 || header.ColumnName === SAMPLE_ID_COLUMN_NAME);
