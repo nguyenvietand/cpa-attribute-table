@@ -39,7 +39,7 @@
    ```sh
    pac solution add-reference --path ../
    # Or use absolute path if needed
-   # pac solution add-reference --path C:/Codes/PA-Custom-Components/chart-pcf
+   # pac solution add-reference --path C:/Codes/PA-Custom-Components/cpa-attribute-table
    ```
 4. **Build the solution:**
 
