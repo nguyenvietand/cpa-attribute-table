@@ -12,6 +12,7 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
     private totalSampleOutput = 0;
     private totalErrorOutput = 0;
     private heightOutput = 0;
+    private pendingPageLoad: Record<string, boolean> = {};
 
     public init(
         context: ComponentFramework.Context<IInputs>,
@@ -45,6 +46,28 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
         this.root?.unmount();
         this.root = null;
         this.notifyOutputChanged = null;
+        this.pendingPageLoad = {};
+    }
+
+    private requestNextPageIfNeeded(dataset: ComponentFramework.PropertyTypes.DataSet | undefined, key: string): void {
+        const paging = dataset?.paging as { hasNextPage?: boolean; loadNextPage?: () => void; setPageSize?: (size: number) => void } | undefined;
+        if (!dataset || !paging) return;
+
+        // Ask for larger page chunks so large datasets finish loading faster.
+        if (!this.pendingPageLoad[`${key}:pageSize`]) {
+            this.pendingPageLoad[`${key}:pageSize`] = true;
+            paging.setPageSize?.(5000);
+        }
+
+        if (dataset.loading) return;
+        if (!paging.hasNextPage) {
+            this.pendingPageLoad[key] = false;
+            return;
+        }
+        if (this.pendingPageLoad[key]) return;
+
+        this.pendingPageLoad[key] = true;
+        paging.loadNextPage?.();
     }
 
     private handleDeleteAction = () => {
@@ -91,14 +114,25 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
     private render(): void {
         if (!this.root || !this.context) return;
 
+        const tableNameDataset = this.context.parameters.tableNameInputList;
+        const evidenceFileDataset = this.context.parameters.evidenceFileInputList;
+
+        // In Power Apps runtime, DataSet is paged and only first chunk (25 items) is available initially.
+        // Keep requesting next pages so sortedRecordIds can contain the full result set.
+        this.requestNextPageIfNeeded(tableNameDataset, 'tableNameInputList');
+        this.requestNextPageIfNeeded(evidenceFileDataset, 'evidenceFileInputList');
+
+        if (!tableNameDataset?.loading) this.pendingPageLoad.tableNameInputList = false;
+        if (!evidenceFileDataset?.loading) this.pendingPageLoad.evidenceFileInputList = false;
+
         const allocatedWidth = Number(this.context.mode.allocatedWidth);
         const allocatedHeight = Number(this.context.mode.allocatedHeight);
         const font = this.context.parameters.font.raw?.trim() ?? '';
         const maxHeight = (this.context.parameters.maxHeight.raw ?? 715) - 120;
         const dataJSONString = this.context.parameters.dataJSON.raw ?? '';
         const defaultTableName = this.context.parameters.defaultTableName.raw ?? '';
-        const tableNameOptions = this.getDatasetValues(this.context.parameters.tableNameInputList, 'Value');
-        const evidenceFileOptions = this.getDatasetValues(this.context.parameters.evidenceFileInputList, 'Title');
+        const tableNameOptions = this.getDatasetValues(tableNameDataset, 'Value');
+        const evidenceFileOptions = this.getDatasetValues(evidenceFileDataset, 'Title');
 
         const width = Number.isFinite(allocatedWidth) && allocatedWidth > 0 ? allocatedWidth : 1200;
         const height = Number.isFinite(allocatedHeight) && allocatedHeight > 0 ? allocatedHeight : 700;
