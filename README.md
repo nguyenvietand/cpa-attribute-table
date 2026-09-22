@@ -42,8 +42,10 @@
    # pac solution add-reference --path C:/Codes/PA-Custom-Components/chart-pcf
    ```
 4. **Build the solution:**
+   - Detele Solutions/bin & Solutions/obj if any
 
    ```sh
+   cd Solutions/
    dotnet build --configuration Release
    dotnet build --configuration Release -p:SolutionPackageType=Unmanaged
    ```
