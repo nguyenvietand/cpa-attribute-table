@@ -91,6 +91,7 @@ export default function ResultSingleSelect({
             {isOpen && createPortal(
                 <div
                     ref={dropdownRef}
+                    data-portal-dropdown="true"
                     style={dropdownStyle}
                     className="border border-gray-300 bg-white overflow-hidden flex flex-col shadow-lg"
                 >

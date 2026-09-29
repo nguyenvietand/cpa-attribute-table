@@ -518,7 +518,7 @@ export default function TableGrid({
                       cellClass = "ring-1! ring-blue-300/60! ring-inset! z-10! bg-blue-500/20!";
                     }
 
-                    return `${hasBorderRight ? "border-r border-gray-200" : ""} p-0 select-none transition relative  ${cellClass}`;
+                    return `${hasBorderRight ? "border-r border-gray-200" : ""} p-0 select-none transition relative outline-none ${cellClass}`;
                   };
 
                   return (
@@ -534,7 +534,7 @@ export default function TableGrid({
                         onMouseEnter={() => onCellMouseEnter(row.id, "order")}
                         data-row-id={row.id}
                         data-col-id="order"
-                        className={`border-r border-gray-100 p-0 select-none transition relative ${isCellSelected(row.id, "order") ?
+                        className={`border-r border-gray-100 p-0 select-none transition relative outline-none ${isCellSelected(row.id, "order") ?
                           (activeRowId === row.id && activeColumnId === "order" ? "ring-2! ring-blue-600! ring-inset! z-20! bg-blue-50/70!" : "ring-1! ring-blue-300/60! ring-inset! z-10! bg-blue-500/20!")
                           : (isRowInSelection ? "bg-blue-500/5!" : "")
                           }`}>
