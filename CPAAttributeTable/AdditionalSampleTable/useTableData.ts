@@ -29,6 +29,7 @@ interface UseTableDataProps {
   };
   initialEvidenceOptions?: string[];
   initialTotalSample?: number | null;
+  initialTotalError?: number | null;
   containerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -38,6 +39,7 @@ export function useTableData({
   initialColumnHeaders = DEFAULT_COLUMN_HEADERS,
   initialEvidenceOptions = [],
   initialTotalSample,
+  initialTotalError,
   containerRef,
 }: UseTableDataProps) {
 
@@ -66,6 +68,9 @@ export function useTableData({
   const [rows, setRows] = useState<SampleRow[]>(initialRows);
   const [customTotalSample, setCustomTotalSample] = useState<number | null>(
     initialTotalSample ?? null,
+  );
+  const [customTotalError, setCustomTotalError] = useState<number | null>(
+    initialTotalError ?? null,
   );
 
   // Active attributes state
@@ -534,19 +539,23 @@ export function useTableData({
     if (initialTotalSample !== undefined && initialTotalSample !== null) {
       setCustomTotalSample(initialTotalSample);
     }
-  }, [initialRows, initialAttributes, initialColumnHeaders, initialTotalSample, normalizeAttributeLayout]);
+    if (initialTotalError !== undefined && initialTotalError !== null) {
+      setCustomTotalError(initialTotalError);
+    }
+  }, [initialRows, initialAttributes, initialColumnHeaders, initialTotalSample, initialTotalError, normalizeAttributeLayout]);
 
   useEffect(() => {
     setEvidenceOptions(initialEvidenceOptions);
   }, [initialEvidenceOptions]);
 
   const totalSamples = customTotalSample ?? rows.length;
-  const totalErrors = rows.filter((row) => {
+  const defaultTotalErrors = rows.filter((row) => {
     const hasFailAttr = attributes.some(
       (attr) => row.attributes[attr.id] === "Fail",
     );
     return hasFailAttr || row.result === "Fail";
   }).length;
+  const totalErrors = customTotalError ?? defaultTotalErrors;
 
   return {
     isExpanded,
@@ -565,6 +574,7 @@ export function useTableData({
     totalSamples,
     setCustomTotalSample,
     totalErrors,
+    setCustomTotalError,
     snackbar,
     setSnackbar,
     activeRowId,

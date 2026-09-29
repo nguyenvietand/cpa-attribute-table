@@ -87,6 +87,7 @@ function buildInitialState(dataJSONString: string): {
     columnHeaders: { week: string; evidence: string; result: string; comment: string };
     rowWpIds: Record<number, number | null>;
     initialTotalSample: number | null;
+    initialTotalError: number | null;
 } {
     const emptyState = {
         rows: [] as SampleRow[],
@@ -99,6 +100,7 @@ function buildInitialState(dataJSONString: string): {
         },
         rowWpIds: {} as Record<number, number | null>,
         initialTotalSample: null,
+        initialTotalError: null,
     };
 
     if (!dataJSONString.trim()) {
@@ -116,6 +118,12 @@ function buildInitialState(dataJSONString: string): {
     const initialTotalSample =
         rawTotalSample !== undefined && rawTotalSample !== null && String(rawTotalSample).trim() !== ''
             ? Number(rawTotalSample)
+            : null;
+
+    const rawTotalError = parsed.total_error;
+    const initialTotalError =
+        rawTotalError !== undefined && rawTotalError !== null && String(rawTotalError).trim() !== ''
+            ? Number(rawTotalError)
             : null;
 
     const cells = Array.isArray(parsed.cells) ? parsed.cells : [];
@@ -254,6 +262,7 @@ function buildInitialState(dataJSONString: string): {
         },
         rowWpIds,
         initialTotalSample,
+        initialTotalError,
     };
 }
 
@@ -351,17 +360,28 @@ export default function CPAAttributeTableApp({
     onHeightChange,
 }: CPAAttributeTableAppProps): React.JSX.Element {
     const tableMaxHeight = Math.max(220, height - 120);
-    const parsedState = React.useMemo(() => buildInitialState(dataJSONString), [dataJSONString]);
+    const lastEmittedJsonRef = React.useRef<string | null>(null);
+    const [parsedState, setParsedState] = React.useState(() => buildInitialState(dataJSONString));
+
+    React.useEffect(() => {
+        if (dataJSONString && dataJSONString === lastEmittedJsonRef.current) {
+            return;
+        }
+        setParsedState(buildInitialState(dataJSONString));
+    }, [dataJSONString]);
+
     const evidenceOptions = React.useMemo(() => resolveEvidenceOptions(evidenceFileOptions), [evidenceFileOptions]);
 
     React.useEffect(() => {
         if (!parsedState.rows) return;
         const totalSamples = parsedState.initialTotalSample ?? parsedState.rows.length;
-        const totalErrors = parsedState.rows.filter((row) => row.result === 'Fail').length;
+        const totalErrors =
+            parsedState.initialTotalError ??
+            parsedState.rows.filter((row) => row.result === 'Fail').length;
 
         onTotalSampleChange?.(totalSamples);
         onTotalErrorChange?.(totalErrors);
-    }, [parsedState.rows, parsedState.initialTotalSample, onTotalSampleChange, onTotalErrorChange]);
+    }, [parsedState.rows, parsedState.initialTotalSample, parsedState.initialTotalError, onTotalSampleChange, onTotalErrorChange]);
 
     React.useEffect(() => {
         onTableNameChange?.(defaultTableName);
@@ -376,6 +396,7 @@ export default function CPAAttributeTableApp({
                 snapshot.rows.filter((row) => row.result === 'Fail').length;
 
             const jsonValue = serializeOutputDataJSON(snapshot, parsedState.rowWpIds, totalSamples, totalErrors);
+            lastEmittedJsonRef.current = jsonValue;
             onDataChange(jsonValue);
 
             onTotalSampleChange?.(totalSamples);
@@ -398,6 +419,7 @@ export default function CPAAttributeTableApp({
                         initialTableNames={tableNameOptions}
                         initialSelectedTableName={defaultTableName}
                         initialTotalSample={parsedState.initialTotalSample}
+                        initialTotalError={parsedState.initialTotalError}
                         onDataChange={handleTableDataChange}
                         onTableNameChange={onTableNameChange}
                         onTotalSampleChange={onTotalSampleChange}

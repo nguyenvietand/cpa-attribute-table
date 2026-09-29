@@ -42,6 +42,7 @@ interface AdditionalSampleTableProps {
   };
   initialEvidenceOptions?: string[];
   initialTotalSample?: number | null;
+  initialTotalError?: number | null;
   onDataChange?: (snapshot: {
     rows: SampleRow[];
     attributes: Attribute[];
@@ -84,6 +85,7 @@ export default function AdditionalSampleTable({
   initialColumnHeaders,
   initialEvidenceOptions,
   initialTotalSample,
+  initialTotalError,
   onDataChange,
   onDeleteAction,
   onTableNameChange,
@@ -112,6 +114,7 @@ export default function AdditionalSampleTable({
     totalSamples,
     setCustomTotalSample,
     totalErrors,
+    setCustomTotalError,
     snackbar,
     setSnackbar,
     activeRowId,
@@ -145,6 +148,7 @@ export default function AdditionalSampleTable({
     initialColumnHeaders,
     initialEvidenceOptions,
     initialTotalSample,
+    initialTotalError,
     containerRef,
   });
 
@@ -319,6 +323,7 @@ export default function AdditionalSampleTable({
             totalErrors={totalErrors}
             title={selectedTableName}
             onTotalSampleChange={setCustomTotalSample}
+            onTotalErrorChange={setCustomTotalError}
           />
         </AccordionSummary>
 
