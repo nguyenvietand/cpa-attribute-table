@@ -40,6 +40,8 @@ interface InputDataJSON {
     cells?: DataCell[];
     headers?: DataHeader[];
     rows?: DataRow[];
+    total_sample?: string | number;
+    total_error?: string | number;
 }
 
 interface TableSnapshot {
@@ -51,6 +53,8 @@ interface TableSnapshot {
         result: string;
         comment: string;
     };
+    totalSample?: number;
+    totalError?: number;
 }
 
 const EVIDENCE_COLUMN_NAME = 'Supporting Evidence per Attribute';
@@ -82,6 +86,7 @@ function buildInitialState(dataJSONString: string): {
     attributes: Attribute[];
     columnHeaders: { week: string; evidence: string; result: string; comment: string };
     rowWpIds: Record<number, number | null>;
+    initialTotalSample: number | null;
 } {
     const emptyState = {
         rows: [] as SampleRow[],
@@ -93,6 +98,7 @@ function buildInitialState(dataJSONString: string): {
             comment: COMMENT_COLUMN_NAME,
         },
         rowWpIds: {} as Record<number, number | null>,
+        initialTotalSample: null,
     };
 
     if (!dataJSONString.trim()) {
@@ -105,6 +111,12 @@ function buildInitialState(dataJSONString: string): {
     } catch (error) {
         return emptyState;
     }
+
+    const rawTotalSample = parsed.total_sample;
+    const initialTotalSample =
+        rawTotalSample !== undefined && rawTotalSample !== null && String(rawTotalSample).trim() !== ''
+            ? Number(rawTotalSample)
+            : null;
 
     const cells = Array.isArray(parsed.cells) ? parsed.cells : [];
     const providedHeaders = Array.isArray(parsed.headers) ? parsed.headers : [];
@@ -241,6 +253,7 @@ function buildInitialState(dataJSONString: string): {
             comment: commentHeader?.ColumnName || COMMENT_COLUMN_NAME,
         },
         rowWpIds,
+        initialTotalSample,
     };
 }
 
@@ -248,7 +261,12 @@ function resolveEvidenceOptions(evidenceFileOptions: string[]): string[] {
     return evidenceFileOptions;
 }
 
-function serializeOutputDataJSON(snapshot: TableSnapshot, rowWpIds: Record<number, number | null>): string {
+function serializeOutputDataJSON(
+    snapshot: TableSnapshot,
+    rowWpIds: Record<number, number | null>,
+    totalSamples: number,
+    totalErrors: number,
+): string {
     const dynamicHeaders = [...snapshot.attributes].sort((a, b) => a.order - b.order);
 
     const headers: DataHeader[] = [
@@ -307,7 +325,13 @@ function serializeOutputDataJSON(snapshot: TableSnapshot, rowWpIds: Record<numbe
     });
 
     const rows: DataRow[] = snapshot.rows.map((row) => ({ Id: row.id }));
-    return JSON.stringify({ cells, headers, rows });
+    return JSON.stringify({
+        cells,
+        headers,
+        rows,
+        total_error: String(totalErrors),
+        total_sample: String(totalSamples),
+    });
 }
 
 export default function CPAAttributeTableApp({
@@ -332,12 +356,12 @@ export default function CPAAttributeTableApp({
 
     React.useEffect(() => {
         if (!parsedState.rows) return;
-        const totalSamples = parsedState.rows.length;
+        const totalSamples = parsedState.initialTotalSample ?? parsedState.rows.length;
         const totalErrors = parsedState.rows.filter((row) => row.result === 'Fail').length;
 
         onTotalSampleChange?.(totalSamples);
         onTotalErrorChange?.(totalErrors);
-    }, [parsedState.rows, onTotalSampleChange, onTotalErrorChange]);
+    }, [parsedState.rows, parsedState.initialTotalSample, onTotalSampleChange, onTotalErrorChange]);
 
     React.useEffect(() => {
         onTableNameChange?.(defaultTableName);
@@ -346,11 +370,13 @@ export default function CPAAttributeTableApp({
     const handleTableDataChange = React.useCallback(
         (snapshot: TableSnapshot) => {
             if (!onDataChange) return;
-            const jsonValue = serializeOutputDataJSON(snapshot, parsedState.rowWpIds);
-            onDataChange(jsonValue);
+            const totalSamples = snapshot.totalSample ?? snapshot.rows.length;
+            const totalErrors =
+                snapshot.totalError ??
+                snapshot.rows.filter((row) => row.result === 'Fail').length;
 
-            const totalSamples = snapshot.rows.length;
-            const totalErrors = snapshot.rows.filter((row) => row.result === 'Fail').length;
+            const jsonValue = serializeOutputDataJSON(snapshot, parsedState.rowWpIds, totalSamples, totalErrors);
+            onDataChange(jsonValue);
 
             onTotalSampleChange?.(totalSamples);
             onTotalErrorChange?.(totalErrors);
@@ -371,6 +397,7 @@ export default function CPAAttributeTableApp({
                         initialEvidenceOptions={evidenceOptions}
                         initialTableNames={tableNameOptions}
                         initialSelectedTableName={defaultTableName}
+                        initialTotalSample={parsedState.initialTotalSample}
                         onDataChange={handleTableDataChange}
                         onTableNameChange={onTableNameChange}
                         onTotalSampleChange={onTotalSampleChange}

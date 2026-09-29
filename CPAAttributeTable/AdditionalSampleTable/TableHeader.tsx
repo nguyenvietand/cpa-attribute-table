@@ -6,6 +6,7 @@ interface TableHeaderProps {
   totalSamples: number;
   totalErrors: number;
   title: string;
+  onTotalSampleChange?: (value: number) => void;
 }
 
 export default function TableHeader({
@@ -13,6 +14,7 @@ export default function TableHeader({
   totalSamples,
   totalErrors,
   title,
+  onTotalSampleChange,
 }: TableHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full select-none">
@@ -34,20 +36,40 @@ export default function TableHeader({
       >
         {/* Total Sample */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-gray-500">
+          <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">
             Total Sample
           </span>
-          <div className="w-12 py-1 bg-white border border-gray-200 rounded text-center text-xs font-bold text-gray-700 shadow-2xs">
-            {totalSamples}
-          </div>
+          <input
+            type="number"
+            value={totalSamples}
+            onChange={(e) => onTotalSampleChange?.(Number(e.target.value))}
+            className="bg-white border border-gray-200 rounded text-center text-xs font-bold text-gray-700 shadow-2xs outline-none focus:border-blue-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            style={{
+              width: '48px',
+              height: '26px',
+              boxSizing: 'border-box',
+              padding: 0,
+              fontSize: '12px',
+              lineHeight: '16px',
+            }}
+          />
         </div>
 
         {/* Total Errors */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-gray-500">
+          <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">
             Total Errors
           </span>
-          <div className="w-12 py-1 bg-white border border-gray-200 rounded text-center text-xs font-bold text-gray-700 shadow-2xs">
+          <div
+            className="bg-white border border-gray-200 rounded text-center text-xs font-bold text-gray-700 shadow-2xs flex items-center justify-center"
+            style={{
+              width: '48px',
+              height: '26px',
+              boxSizing: 'border-box',
+              fontSize: '12px',
+              lineHeight: '16px',
+            }}
+          >
             {totalErrors}
           </div>
         </div>

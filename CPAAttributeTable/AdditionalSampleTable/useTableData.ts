@@ -28,6 +28,7 @@ interface UseTableDataProps {
     comment: string;
   };
   initialEvidenceOptions?: string[];
+  initialTotalSample?: number | null;
   containerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -36,6 +37,7 @@ export function useTableData({
   initialAttributes = [],
   initialColumnHeaders = DEFAULT_COLUMN_HEADERS,
   initialEvidenceOptions = [],
+  initialTotalSample,
   containerRef,
 }: UseTableDataProps) {
 
@@ -62,6 +64,9 @@ export function useTableData({
 
   // Table rows editable state
   const [rows, setRows] = useState<SampleRow[]>(initialRows);
+  const [customTotalSample, setCustomTotalSample] = useState<number | null>(
+    initialTotalSample ?? null,
+  );
 
   // Active attributes state
   const [attributes, setAttributes] = useState<Attribute[]>(initialAttributes);
@@ -526,13 +531,16 @@ export function useTableData({
     setRows(initialRows);
     setAttributes(normalizeAttributeLayout(initialAttributes));
     setColumnHeaders(initialColumnHeaders);
-  }, [initialRows, initialAttributes, initialColumnHeaders, normalizeAttributeLayout]);
+    if (initialTotalSample !== undefined && initialTotalSample !== null) {
+      setCustomTotalSample(initialTotalSample);
+    }
+  }, [initialRows, initialAttributes, initialColumnHeaders, initialTotalSample, normalizeAttributeLayout]);
 
   useEffect(() => {
     setEvidenceOptions(initialEvidenceOptions);
   }, [initialEvidenceOptions]);
 
-  const totalSamples = rows.length;
+  const totalSamples = customTotalSample ?? rows.length;
   const totalErrors = rows.filter((row) => {
     const hasFailAttr = attributes.some(
       (attr) => row.attributes[attr.id] === "Fail",
@@ -555,6 +563,7 @@ export function useTableData({
     editingRow,
     setEditingRow,
     totalSamples,
+    setCustomTotalSample,
     totalErrors,
     snackbar,
     setSnackbar,

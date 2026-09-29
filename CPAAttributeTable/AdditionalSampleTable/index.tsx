@@ -41,6 +41,7 @@ interface AdditionalSampleTableProps {
     comment: string;
   };
   initialEvidenceOptions?: string[];
+  initialTotalSample?: number | null;
   onDataChange?: (snapshot: {
     rows: SampleRow[];
     attributes: Attribute[];
@@ -50,6 +51,8 @@ interface AdditionalSampleTableProps {
       result: string;
       comment: string;
     };
+    totalSample?: number;
+    totalError?: number;
   }) => void;
   onDeleteAction?: () => void;
   onTableNameChange?: (name: string) => void;
@@ -80,6 +83,7 @@ export default function AdditionalSampleTable({
   initialSelectedTableName,
   initialColumnHeaders,
   initialEvidenceOptions,
+  initialTotalSample,
   onDataChange,
   onDeleteAction,
   onTableNameChange,
@@ -106,6 +110,7 @@ export default function AdditionalSampleTable({
     editingRow,
     setEditingRow,
     totalSamples,
+    setCustomTotalSample,
     totalErrors,
     snackbar,
     setSnackbar,
@@ -139,6 +144,7 @@ export default function AdditionalSampleTable({
     initialAttributes,
     initialColumnHeaders,
     initialEvidenceOptions,
+    initialTotalSample,
     containerRef,
   });
 
@@ -258,8 +264,10 @@ export default function AdditionalSampleTable({
       rows,
       attributes,
       columnHeaders,
+      totalSample: totalSamples,
+      totalError: totalErrors,
     });
-  }, [rows, attributes, columnHeaders, onDataChange]);
+  }, [rows, attributes, columnHeaders, totalSamples, totalErrors, onDataChange]);
 
   const isSingleCellSelection =
     !selectionRange ||
@@ -310,6 +318,7 @@ export default function AdditionalSampleTable({
             totalSamples={totalSamples}
             totalErrors={totalErrors}
             title={selectedTableName}
+            onTotalSampleChange={setCustomTotalSample}
           />
         </AccordionSummary>
 
