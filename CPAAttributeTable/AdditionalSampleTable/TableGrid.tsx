@@ -9,6 +9,7 @@ import { mergeEvidenceOptions, splitEvidenceValue, joinEvidenceValues } from "./
 import EvidenceMultiSelect from "./EvidenceMultiSelect";
 import ResultSingleSelect from "./ResultSingleSelect";
 import CellTextDialog from "./CellTextDialog";
+import ExcelCellEditor from "./ExcelCellEditor";
 import {
   DndContext,
   closestCenter,
@@ -361,7 +362,7 @@ export default function TableGrid({
         ref={containerRef}
         className="overflow-y-auto overflow-x-auto w-full outline-none"
         style={{ maxHeight: formatWidth(maxHeight) }}>
-        <div className="min-w-full w-max pr-3">
+        <div className="min-w-full w-max pr-3 pb-24">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -587,58 +588,51 @@ export default function TableGrid({
                           <div className="w-full h-10 text-xs font-medium text-gray-700 flex items-center justify-center">
                             {row.week}
                           </div>
-                          : <div className="flex items-center h-10 px-2 gap-1.5 text-gray-400 w-full group">
-                            <div className="flex items-center gap-1 shrink-0">
-                              {/* Edit pencil icon */}
-                              <button
-                                type="button"
-                                className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onEditClick(row);
-                                }}
-                              >
-                                <EditIcon sx={{ fontSize: 14, color: "red" }} />
-                              </button>
-                              {/* Trash icon */}
-                              <button
-                                type="button"
-                                className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDeleteRow(row.id);
-                                }}
-                              >
-                                <DeleteIcon sx={{ fontSize: 14, color: "red" }} />
-                              </button>
-                            </div>
-                            <textarea
-                              rows={1}
-                              value={row.week}
-                              onChange={(e) =>
-                                onWeekChange(row.id, e.target.value)
-                              }
-                              className="w-full h-8 text-xs font-medium text-gray-700 bg-transparent border-0 px-1 py-1.5 focus:ring-0 outline-hidden min-w-0 resize-none overflow-y-auto leading-tight"
-                            />
-                            <button
-                              type="button"
-                              tabIndex={-1}
-                              onMouseDown={(e) => e.stopPropagation()}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCellModalState({
-                                  open: true,
-                                  rowId: row.id,
-                                  colId: "week",
-                                  title: columnHeaders.week || "Sample ID",
-                                  value: row.week,
-                                });
-                              }}
-                              className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-0.5 rounded cursor-pointer shrink-0 transition-colors"
-                              title="Expand">
-                              <OpenInFullIcon sx={{ fontSize: 12 }} />
-                            </button>
-                          </div>
+                          : <ExcelCellEditor
+                            value={row.week}
+                            onChange={(val) => onWeekChange(row.id, val)}
+                            prefix={
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onEditClick(row);
+                                  }}
+                                >
+                                  <EditIcon sx={{ fontSize: 14, color: "red" }} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDeleteRow(row.id);
+                                  }}
+                                >
+                                  <DeleteIcon sx={{ fontSize: 14, color: "red" }} />
+                                </button>
+                              </div>
+                            }
+                            onExpand={() =>
+                              setCellModalState({
+                                open: true,
+                                rowId: row.id,
+                                colId: "week",
+                                title: columnHeaders.week || "Sample ID",
+                                value: row.week,
+                              })
+                            }
+                          />
                         }
                       </td>
 
@@ -657,34 +651,21 @@ export default function TableGrid({
                               <div className="w-full h-10 text-xs font-medium text-gray-700 px-3 flex items-center">
                                 {val}
                               </div>
-                              : <div className="flex items-center w-full h-10 px-2 group">
-                                <textarea
-                                  rows={1}
-                                  value={val}
-                                  onChange={(e) =>
-                                    onAttrChange(row.id, attr.id, e.target.value)
-                                  }
-                                  className="w-full h-8 text-xs font-medium text-gray-700 bg-transparent border-0 px-1 py-1.5 focus:ring-0 outline-hidden min-w-0 resize-none overflow-y-auto leading-tight"
-                                />
-                                <button
-                                  type="button"
-                                  tabIndex={-1}
-                                  onMouseDown={(e) => e.stopPropagation()}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setCellModalState({
-                                      open: true,
-                                      rowId: row.id,
-                                      colId: attr.id,
-                                      title: attr.name,
-                                      value: val,
-                                    });
-                                  }}
-                                  className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-0.5 rounded cursor-pointer shrink-0 transition-colors"
-                                  title="Expand">
-                                  <OpenInFullIcon sx={{ fontSize: 12 }} />
-                                </button>
-                              </div>
+                              : <ExcelCellEditor
+                                value={val}
+                                onChange={(newVal) =>
+                                  onAttrChange(row.id, attr.id, newVal)
+                                }
+                                onExpand={() =>
+                                  setCellModalState({
+                                    open: true,
+                                    rowId: row.id,
+                                    colId: attr.id,
+                                    title: attr.name,
+                                    value: val,
+                                  })
+                                }
+                              />
                             }
                           </td>
                         );
@@ -765,34 +746,19 @@ export default function TableGrid({
                           <div className="w-full h-10 text-xs font-medium text-gray-700 px-3 flex items-center">
                             {row.comment || ""}
                           </div>
-                          : <div className="flex items-center w-full h-10 px-2 group">
-                            <textarea
-                              rows={1}
-                              value={row.comment || ""}
-                              onChange={(e) =>
-                                onCommentChange(row.id, e.target.value)
-                              }
-                              className="w-full h-8 text-xs font-medium text-gray-700 bg-transparent border-0 px-1 py-1.5 focus:ring-0 outline-hidden min-w-0 resize-none overflow-y-auto leading-tight"
-                            />
-                            <button
-                              type="button"
-                              tabIndex={-1}
-                              onMouseDown={(e) => e.stopPropagation()}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setCellModalState({
-                                  open: true,
-                                  rowId: row.id,
-                                  colId: "comment",
-                                  title: columnHeaders.comment || "Comment",
-                                  value: row.comment || "",
-                                });
-                              }}
-                              className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-0.5 rounded cursor-pointer shrink-0 transition-colors"
-                              title="Expand">
-                              <OpenInFullIcon sx={{ fontSize: 12 }} />
-                            </button>
-                          </div>
+                          : <ExcelCellEditor
+                            value={row.comment || ""}
+                            onChange={(val) => onCommentChange(row.id, val)}
+                            onExpand={() =>
+                              setCellModalState({
+                                open: true,
+                                rowId: row.id,
+                                colId: "comment",
+                                title: columnHeaders.comment || "Comment",
+                                value: row.comment || "",
+                              })
+                            }
+                          />
                         }
                       </td>
                     </tr>
