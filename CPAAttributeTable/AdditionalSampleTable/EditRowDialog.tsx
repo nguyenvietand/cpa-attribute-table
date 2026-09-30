@@ -55,38 +55,38 @@ export default function EditRowDialog({
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <div className="p-6 bg-white rounded-lg">
+      <div className="p-6 bg-white rounded-lg flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 pb-3 mb-4">
-          <h3 className="text-lg font-bold text-gray-800">
+        <div className="flex items-center justify-between border-b border-gray-200 pb-3 mb-4 shrink-0">
+          <h3 className="text-base font-bold text-gray-800">
             Edit Sample Row (ID: {row.id})
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-650 text-xl font-bold cursor-pointer">
+            className="text-gray-400 hover:text-gray-650 text-xl font-bold cursor-pointer leading-none p-1 transition-colors">
             &times;
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto pr-1">
           {/* Sample ID */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-gray-500 uppercase">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
               Sample ID <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              placeholder=""
+            <textarea
+              rows={2}
               value={week}
               onChange={(e) => {
                 setWeek(e.target.value);
                 if (e.target.value.trim()) setErrorWeek(false);
               }}
-              className={`w-full text-sm font-medium border rounded px-3 py-2 focus:outline-none focus:ring-1 ${errorWeek ?
-                  "border-red-500 focus:ring-red-500 focus:border-red-500"
-                  : "border-gray-300 focus:border-gray-400 focus:ring-gray-400"
-                }`}
+              className={`w-full text-xs font-medium border rounded px-2.5 py-1.5 focus:outline-none focus:ring-1 resize-y ${
+                errorWeek
+                  ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                  : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              }`}
             />
             {errorWeek && (
               <span className="text-xs text-red-500">
@@ -96,37 +96,39 @@ export default function EditRowDialog({
           </div>
 
           {/* Attributes */}
-          <div className="border-t border-gray-100 pt-3">
-            <span className="text-xs font-bold text-gray-500 uppercase block mb-2">
-              Attributes
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {attributes.map((attr) => (
-                <div key={attr.id} className="flex flex-col gap-1">
-                  <label
-                    className="text-xs font-semibold text-gray-600 truncate"
-                    title={attr.name}>
-                    {attr.name}
-                  </label>
-                  <input
-                    type="text"
-                    value={attrValues[attr.id] || ""}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                      setAttrValues({
-                        ...attrValues,
-                        [attr.id]: e.target.value,
-                      });
-                    }}
-                    className="w-full text-xs font-medium border border-gray-300 rounded px-2.5 py-1.5 focus:outline-none focus:border-gray-400 bg-white"
-                  />
-                </div>
-              ))}
+          {attributes.length > 0 && (
+            <div className="border-t border-gray-100 pt-3">
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
+                Attributes
+              </span>
+              <div className="flex flex-col gap-3">
+                {attributes.map((attr) => (
+                  <div key={attr.id} className="flex flex-col gap-1">
+                    <label
+                      className="text-xs font-semibold text-gray-600 truncate"
+                      title={attr.name}>
+                      {attr.name}
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={attrValues[attr.id] || ""}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                        setAttrValues({
+                          ...attrValues,
+                          [attr.id]: e.target.value,
+                        });
+                      }}
+                      className="w-full text-xs font-medium border border-gray-300 rounded px-2.5 py-1.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white resize-y"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Supporting Evidence */}
           <div className="border-t border-gray-100 pt-3 flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-gray-500 uppercase">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
               Supporting Evidence
             </label>
             <EvidenceMultiSelect
@@ -138,38 +140,41 @@ export default function EditRowDialog({
           </div>
 
           {/* Assessment Result (Pass/Fail) */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-gray-500 uppercase">
+          <div className="border-t border-gray-100 pt-3 flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
               Assessment Result
             </label>
-            <select
-              value={result}
-              onChange={(e) => setResult(e.target.value as "Pass" | "Fail" | "")}
-              className="w-full text-xs font-semibold border border-gray-300 rounded px-2.5 py-1.5 focus:outline-none focus:border-gray-450 bg-white">
-              <option value="Pass" className="text-emerald-700">
-                Pass
-              </option>
-              <option value="Fail" className="text-red-700">
-                Fail
-              </option>
-            </select>
+            <div className="relative w-full">
+              <select
+                value={result}
+                onChange={(e) => setResult(e.target.value as "Pass" | "Fail" | "")}
+                style={{ width: "100%", height: "40px", boxSizing: "border-box" }}
+                className="w-full h-10 text-xs font-semibold border border-gray-300 rounded px-2.5 bg-white text-gray-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer">
+                <option value="Pass" className="text-emerald-700">
+                  Pass
+                </option>
+                <option value="Fail" className="text-red-700">
+                  Fail
+                </option>
+              </select>
+            </div>
           </div>
 
           {/* Comment */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold text-gray-500 uppercase">
+          <div className="border-t border-gray-100 pt-3 flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
               Comment
             </label>
-            <input
-              type="text"
+            <textarea
+              rows={2}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="w-full text-xs font-medium border border-gray-300 rounded px-2.5 py-1.5 focus:outline-none focus:border-gray-450 bg-white"
+              className="w-full text-xs font-medium border border-gray-300 rounded px-2.5 py-1.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white resize-y"
             />
           </div>
 
           {/* Actions */}
-          <div className="border-t border-gray-200 pt-4 flex justify-end gap-2">
+          <div className="border-t border-gray-200 pt-4 flex justify-end gap-2 shrink-0">
             <button
               type="button"
               onClick={onClose}
@@ -187,3 +192,4 @@ export default function EditRowDialog({
     </Dialog>
   );
 }
+

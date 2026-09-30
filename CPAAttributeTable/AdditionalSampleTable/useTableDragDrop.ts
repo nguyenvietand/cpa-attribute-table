@@ -384,6 +384,21 @@ export function useTableDragDrop({
 
       // Handle Enter key (move down like Excel)
       if (e.key === "Enter" && activeEl?.closest("td[data-row-id]")) {
+        if ((e.altKey || e.ctrlKey) && activeEl instanceof HTMLTextAreaElement) {
+          e.preventDefault();
+          const start = activeEl.selectionStart;
+          const end = activeEl.selectionEnd;
+          const val = activeEl.value;
+          const newVal = val.substring(0, start) + "\n" + val.substring(end);
+          const setter = Object.getOwnPropertyDescriptor(
+            window.HTMLTextAreaElement.prototype,
+            "value"
+          )?.set;
+          setter?.call(activeEl, newVal);
+          activeEl.dispatchEvent(new Event("input", { bubbles: true }));
+          activeEl.selectionStart = activeEl.selectionEnd = start + 1;
+          return;
+        }
         e.preventDefault();
         moveCellByArrow(e.shiftKey ? "up" : "down");
         return;
@@ -418,8 +433,20 @@ export function useTableDragDrop({
             if (selectionStart !== value.length && !isAllSelected) {
               return;
             }
+          } else if (activeEl instanceof HTMLTextAreaElement && value.includes("\n")) {
+            // In multi-line textarea, only move between cells if at the very first or last line
+            if (e.key === "ArrowUp") {
+              const firstNewline = value.indexOf("\n");
+              if (selectionStart !== null && selectionStart > firstNewline && !isAllSelected) {
+                return;
+              }
+            } else if (e.key === "ArrowDown") {
+              const lastNewline = value.lastIndexOf("\n");
+              if (selectionStart !== null && selectionStart <= lastNewline && !isAllSelected) {
+                return;
+              }
+            }
           }
-          // For ArrowUp and ArrowDown in single-line text input, move cell directly
         }
 
         e.preventDefault();

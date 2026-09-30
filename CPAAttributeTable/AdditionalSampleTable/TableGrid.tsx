@@ -4,9 +4,11 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { mergeEvidenceOptions, splitEvidenceValue, joinEvidenceValues } from "./evidenceUtils";
 import EvidenceMultiSelect from "./EvidenceMultiSelect";
 import ResultSingleSelect from "./ResultSingleSelect";
+import CellTextDialog from "./CellTextDialog";
 import {
   DndContext,
   closestCenter,
@@ -221,6 +223,26 @@ export default function TableGrid({
   const prevRowsLength = useRef(rows.length);
   const [hoveredCol, setHoveredCol] = useState<string | null>(null);
   const [openEvidenceRowId, setOpenEvidenceRowId] = useState<number | null>(null);
+  const [cellModalState, setCellModalState] = useState<{
+    open: boolean;
+    rowId: number;
+    colId: string;
+    title: string;
+    value: string;
+  } | null>(null);
+
+  const handleSaveCellModal = (newValue: string) => {
+    if (!cellModalState) return;
+    const { rowId, colId } = cellModalState;
+    if (colId === "week") {
+      onWeekChange(rowId, newValue);
+    } else if (colId === "comment") {
+      onCommentChange(rowId, newValue);
+    } else {
+      onAttrChange(rowId, colId, newValue);
+    }
+    setCellModalState(null);
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -565,7 +587,7 @@ export default function TableGrid({
                           <div className="w-full h-10 text-xs font-medium text-gray-700 flex items-center justify-center">
                             {row.week}
                           </div>
-                          : <div className="flex items-center h-10 px-2 gap-1.5 text-gray-400 w-full">
+                          : <div className="flex items-center h-10 px-2 gap-1.5 text-gray-400 w-full group">
                             <div className="flex items-center gap-1 shrink-0">
                               {/* Edit pencil icon */}
                               <button
@@ -590,14 +612,32 @@ export default function TableGrid({
                                 <DeleteIcon sx={{ fontSize: 14, color: "red" }} />
                               </button>
                             </div>
-                            <input
-                              type="text"
+                            <textarea
+                              rows={1}
                               value={row.week}
                               onChange={(e) =>
                                 onWeekChange(row.id, e.target.value)
                               }
-                              className="w-full h-10 text-xs font-medium text-gray-700 bg-transparent border-0 px-1 focus:ring-0 outline-hidden"
+                              className="w-full h-8 text-xs font-medium text-gray-700 bg-transparent border-0 px-1 py-1.5 focus:ring-0 outline-hidden min-w-0 resize-none overflow-y-auto leading-tight"
                             />
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCellModalState({
+                                  open: true,
+                                  rowId: row.id,
+                                  colId: "week",
+                                  title: columnHeaders.week || "Sample ID",
+                                  value: row.week,
+                                });
+                              }}
+                              className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-0.5 rounded cursor-pointer shrink-0 transition-colors"
+                              title="Expand">
+                              <OpenInFullIcon sx={{ fontSize: 12 }} />
+                            </button>
                           </div>
                         }
                       </td>
@@ -617,14 +657,34 @@ export default function TableGrid({
                               <div className="w-full h-10 text-xs font-medium text-gray-700 px-3 flex items-center">
                                 {val}
                               </div>
-                              : <input
-                                type="text"
-                                value={val}
-                                onChange={(e) =>
-                                  onAttrChange(row.id, attr.id, e.target.value)
-                                }
-                                className="w-full h-10 text-xs font-medium text-gray-700 bg-transparent border-0 px-3 focus:ring-0 outline-hidden"
-                              />
+                              : <div className="flex items-center w-full h-10 px-2 group">
+                                <textarea
+                                  rows={1}
+                                  value={val}
+                                  onChange={(e) =>
+                                    onAttrChange(row.id, attr.id, e.target.value)
+                                  }
+                                  className="w-full h-8 text-xs font-medium text-gray-700 bg-transparent border-0 px-1 py-1.5 focus:ring-0 outline-hidden min-w-0 resize-none overflow-y-auto leading-tight"
+                                />
+                                <button
+                                  type="button"
+                                  tabIndex={-1}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCellModalState({
+                                      open: true,
+                                      rowId: row.id,
+                                      colId: attr.id,
+                                      title: attr.name,
+                                      value: val,
+                                    });
+                                  }}
+                                  className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-0.5 rounded cursor-pointer shrink-0 transition-colors"
+                                  title="Expand">
+                                  <OpenInFullIcon sx={{ fontSize: 12 }} />
+                                </button>
+                              </div>
                             }
                           </td>
                         );
@@ -705,14 +765,34 @@ export default function TableGrid({
                           <div className="w-full h-10 text-xs font-medium text-gray-700 px-3 flex items-center">
                             {row.comment || ""}
                           </div>
-                          : <input
-                            type="text"
-                            value={row.comment || ""}
-                            onChange={(e) =>
-                              onCommentChange(row.id, e.target.value)
-                            }
-                            className="w-full h-10 text-xs font-medium text-gray-700 bg-transparent border-0 px-3 focus:ring-0 outline-hidden"
-                          />
+                          : <div className="flex items-center w-full h-10 px-2 group">
+                            <textarea
+                              rows={1}
+                              value={row.comment || ""}
+                              onChange={(e) =>
+                                onCommentChange(row.id, e.target.value)
+                              }
+                              className="w-full h-8 text-xs font-medium text-gray-700 bg-transparent border-0 px-1 py-1.5 focus:ring-0 outline-hidden min-w-0 resize-none overflow-y-auto leading-tight"
+                            />
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCellModalState({
+                                  open: true,
+                                  rowId: row.id,
+                                  colId: "comment",
+                                  title: columnHeaders.comment || "Comment",
+                                  value: row.comment || "",
+                                });
+                              }}
+                              className="text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-0.5 rounded cursor-pointer shrink-0 transition-colors"
+                              title="Expand">
+                              <OpenInFullIcon sx={{ fontSize: 12 }} />
+                            </button>
+                          </div>
                         }
                       </td>
                     </tr>
@@ -723,6 +803,16 @@ export default function TableGrid({
           </DndContext>
         </div>
       </div>
+
+      {cellModalState?.open && (
+        <CellTextDialog
+          open={cellModalState.open}
+          title={cellModalState.title}
+          initialValue={cellModalState.value}
+          onClose={() => setCellModalState(null)}
+          onSave={handleSaveCellModal}
+        />
+      )}
     </div>
   );
 }

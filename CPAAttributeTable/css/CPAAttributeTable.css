@@ -21,7 +21,9 @@
 }
 
 td input:not([type="checkbox"]),
-td select {
+td textarea,
+td select,
+select.w-full {
     width: 100% !important;
     box-sizing: border-box !important;
 }
