@@ -178,6 +178,8 @@ export default function AdditionalSampleTable({
     onCellMouseEnter,
     isCellSelected,
     handleCopyRange,
+    moveCellByArrow,
+    moveToNextCell,
   } = useTableDragDrop({
     rows,
     attributes,
@@ -384,6 +386,8 @@ export default function AdditionalSampleTable({
             onCellMouseEnter={onCellMouseEnter}
             isCellSelected={isCellSelected}
             selectionRange={selectionRange}
+            onNavigateCell={moveCellByArrow}
+            onNavigateNext={moveToNextCell}
           />
 
           <TableFooter />

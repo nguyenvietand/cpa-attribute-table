@@ -69,6 +69,8 @@ interface TableGridProps {
     start: { rowId: number; colId: string };
     end: { rowId: number; colId: string };
   } | null;
+  onNavigateCell?: (direction: "up" | "down" | "left" | "right") => void;
+  onNavigateNext?: (reverse?: boolean) => void;
 }
 
 interface SortableHeaderCellProps {
@@ -219,6 +221,8 @@ export default function TableGrid({
   onCellMouseEnter,
   isCellSelected,
   selectionRange,
+  onNavigateCell,
+  onNavigateNext,
 }: TableGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const prevRowsLength = useRef(rows.length);
@@ -553,6 +557,7 @@ export default function TableGrid({
                         }`}>
                       {/* Row Number & Checkbox (Col 0) */}
                       <td
+                        tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "order")}
                         onMouseEnter={() => onCellMouseEnter(row.id, "order")}
                         data-row-id={row.id}
@@ -579,6 +584,7 @@ export default function TableGrid({
 
                       {/* Week (Col 1) */}
                       <td
+                        tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "week")}
                         onMouseEnter={() => onCellMouseEnter(row.id, "week")}
                         data-row-id={row.id}
@@ -632,6 +638,11 @@ export default function TableGrid({
                                 value: row.week,
                               })
                             }
+                            isActive={activeRowId === row.id && activeColumnId === "week"}
+                            onNavigateDown={() => onNavigateCell?.("down")}
+                            onNavigateUp={() => onNavigateCell?.("up")}
+                            onNavigateNext={() => onNavigateNext?.(false)}
+                            onNavigatePrev={() => onNavigateNext?.(true)}
                           />
                         }
                       </td>
@@ -642,6 +653,7 @@ export default function TableGrid({
                         return (
                           <td
                             key={attr.id}
+                            tabIndex={-1}
                             onMouseDown={(e) => onCellMouseDown(e, row.id, attr.id)}
                             onMouseEnter={() => onCellMouseEnter(row.id, attr.id)}
                             data-row-id={row.id}
@@ -665,6 +677,11 @@ export default function TableGrid({
                                     value: val,
                                   })
                                 }
+                                isActive={activeRowId === row.id && activeColumnId === attr.id}
+                                onNavigateDown={() => onNavigateCell?.("down")}
+                                onNavigateUp={() => onNavigateCell?.("up")}
+                                onNavigateNext={() => onNavigateNext?.(false)}
+                                onNavigatePrev={() => onNavigateNext?.(true)}
                               />
                             }
                           </td>
@@ -673,6 +690,7 @@ export default function TableGrid({
 
                       {/* Supporting Evidence (Col N+2) */}
                       <td
+                        tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "evidence")}
                         onMouseEnter={() => onCellMouseEnter(row.id, "evidence")}
                         data-row-id={row.id}
@@ -707,6 +725,7 @@ export default function TableGrid({
 
                       {/* Assessment Result (Col N+3) */}
                       <td
+                        tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "result")}
                         onMouseEnter={() => onCellMouseEnter(row.id, "result")}
                         data-row-id={row.id}
@@ -737,6 +756,7 @@ export default function TableGrid({
 
                       {/* Comment (Col N+4) */}
                       <td
+                        tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "comment")}
                         onMouseEnter={() => onCellMouseEnter(row.id, "comment")}
                         data-row-id={row.id}
@@ -758,6 +778,11 @@ export default function TableGrid({
                                 value: row.comment || "",
                               })
                             }
+                            isActive={activeRowId === row.id && activeColumnId === "comment"}
+                            onNavigateDown={() => onNavigateCell?.("down")}
+                            onNavigateUp={() => onNavigateCell?.("up")}
+                            onNavigateNext={() => onNavigateNext?.(false)}
+                            onNavigatePrev={() => onNavigateNext?.(true)}
                           />
                         }
                       </td>
