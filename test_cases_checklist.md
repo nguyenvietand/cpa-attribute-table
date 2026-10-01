@@ -8,7 +8,7 @@ This document provides a complete, production-grade test suite catalog for the *
 
 | Suite ID | Test Suite Domain | Description | Total Cases |
 | :--- | :--- | :--- | :---: |
-| **01-INIT** | Initialization & PCF Lifecycle | Manifest parameters, dataset paging, JSON parsing, outputs synchronization | 9 |
+| **01-INIT** | Initialization & PCF Lifecycle | Manifest parameters, dataset paging, JSON parsing, outputs synchronization, multi-table isolation | 11 |
 | **02-CELL** | Excel-Like Cell Editing (`ExcelCellEditor`) | Single/Double click, F2, multiline Alt+Enter, Enter/Tab navigation, focus retention | 14 |
 | **03-NAV** | Grid Selection & Keyboard Navigation | Arrow keys, drag range selection, TSV clipboard copy, active cell styles, copy priority | 9 |
 | **04-ROW** | Row Operations (CRUD) | Single row add, batch row add, edit dialog, delete row, totals auto-recalculation | 7 |
@@ -19,7 +19,7 @@ This document provides a complete, production-grade test suite catalog for the *
 | **09-HEAD** | Table Header & Totals Override | Table selector, total sample & error override, zero fallback, select-on-focus | 6 |
 | **10-UI** | Layout, Accordion & Responsive Design | Sticky headers/columns, maxHeight scrolling, font injection, height reporting | 6 |
 | **11-DIS** | Disabled / Read-Only Display Mode | Complete UI lockdown when `isControlDisabled` is true | 11 |
-| **TOTAL** | | | **92 Test Cases** |
+| **TOTAL** | | | **94 Test Cases** |
 
 ---
 
@@ -36,6 +36,8 @@ This document provides a complete, production-grade test suite catalog for the *
 | **TC-INIT-07** | Parameter Output Synchronization (`getOutputs`) | Table rows, table name, or totals change. | Trigger any data change. | `notifyOutputChanged()` is called; `getOutputs()` returns accurate `dataJSONOutput`, `tableNameOutput`, `totalSampleOutput`, `totalErrorOutput`, and `heightOutput`. | **P0** |
 | **TC-INIT-08** | External `dataJSON` prop change | Control is mounted; external host passes new `dataJSON`. | Update `dataJSON` from parent form. | Component re-synchronizes state with new JSON, unless the change was emitted from the control itself. | **P1** |
 | **TC-INIT-09** | Component Teardown (`destroy`) | Control is unmounted from DOM. | Navigate away from screen or close form. | `root.unmount()` executes cleanly; event listeners, timers, and pending page load references are garbage collected. | **P2** |
+| **TC-INIT-10** | Multi-Table Instance Isolation (Click Focus) | 2 or more CPA Attribute Table controls mounted on the same Power Apps screen. | Click on any cell of Table 2 (or Table N). | Table 2's cell is selected and focused cleanly; screen does **not** jump back to Table 1; Table 1's active selection is cleared; Table 2 retains active focus. | **P0** |
+| **TC-INIT-11** | Multi-Table Instance Isolation (Clipboard & Shortcuts) | Multiple tables mounted; Table 1 has rows checked / range selected; user clicks Table 2. | Press `Ctrl + C`, `Ctrl + V`, Tab, Enter, or Arrow keys while active in Table 2. | Shortcuts only execute on the active table (Table 2); Table 1's data is never overwritten and its checked rows are not copied; no cross-table shortcut collision occurs. | **P0** |
 
 ---
 
@@ -196,7 +198,7 @@ This document provides a complete, production-grade test suite catalog for the *
 ## Test Execution Tracking Checklist
 
 ```markdown
-- [ ] Suite 01: Initialization & PCF Lifecycle (9/9)
+- [ ] Suite 01: Initialization & PCF Lifecycle (11/11)
 - [ ] Suite 02: Excel-Like Cell Editing (14/14)
 - [ ] Suite 03: Grid Selection & Keyboard Navigation (9/9)
 - [ ] Suite 04: Row Operations (CRUD) (7/7)

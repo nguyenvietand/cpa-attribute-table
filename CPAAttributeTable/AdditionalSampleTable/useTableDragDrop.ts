@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { SampleRow, Attribute } from "./index";
 import { exportCellRangeToTSV, writeToClipboard } from "./utils/clipboardHelper";
+import { getActiveTableContainer } from "./activeTableRegistry";
 
 interface SelectionRange {
   start: { rowId: number; colId: string };
@@ -29,6 +30,7 @@ interface UseTableDragDropProps {
   >;
   isSelecting: boolean;
   setIsSelecting: React.Dispatch<React.SetStateAction<boolean>>;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function useTableDragDrop({
@@ -45,6 +47,7 @@ export function useTableDragDrop({
   setSelectionRange,
   isSelecting,
   setIsSelecting,
+  containerRef,
 }: UseTableDragDropProps) {
   const dragTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mouseDownInfo = useRef<{
@@ -154,7 +157,9 @@ export function useTableDragDrop({
 
   const focusCell = useCallback((rowId: number, colId: string) => {
     requestAnimationFrame(() => {
-      const cell = document.querySelector<HTMLElement>(`td[data-row-id="${rowId}"][data-col-id="${colId}"]`);
+      const cell = containerRef?.current
+        ? containerRef.current.querySelector<HTMLElement>(`td[data-row-id="${rowId}"][data-col-id="${colId}"]`)
+        : document.querySelector<HTMLElement>(`td[data-row-id="${rowId}"][data-col-id="${colId}"]`);
       if (!cell) return;
 
       // Never steal focus if an input or textarea inside this cell is currently focused
@@ -168,9 +173,9 @@ export function useTableDragDrop({
       }
 
       cell.tabIndex = -1;
-      cell.focus({ preventScroll: false });
+      cell.focus({ preventScroll: true });
     });
-  }, []);
+  }, [containerRef]);
 
   // Global mouseup and mousedown handlers to manage selection
   useEffect(() => {
@@ -354,6 +359,11 @@ export function useTableDragDrop({
   // Intercept keyboard navigation and copy shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore keyboard navigation if this table is not active
+      if (containerRef?.current && getActiveTableContainer() !== containerRef.current) {
+        return;
+      }
+
       const activeEl = document.activeElement;
 
       // Ignore if typing in an input outside the table (e.g. Header Total Samples/Errors, Dialog)
@@ -547,6 +557,7 @@ export function useTableDragDrop({
     handleCopyRange,
     moveToNextCell,
     moveCellByArrow,
+    containerRef,
   ]);
 
   return {

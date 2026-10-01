@@ -172,6 +172,7 @@ export default function AdditionalSampleTable({
     activeRowId,
     selectionRange,
     hasRangeSelection: !!selectionRange,
+    containerRef,
   });
 
   const hasSelection = hasRowSelection || !!selectionRange;
@@ -205,6 +206,7 @@ export default function AdditionalSampleTable({
     setSelectionRange,
     isSelecting,
     setIsSelecting,
+    containerRef,
   });
 
   const resolvedMaxHeight = maxHeight ?? DEFAULT_TABLE_CONFIG.maxHeight;

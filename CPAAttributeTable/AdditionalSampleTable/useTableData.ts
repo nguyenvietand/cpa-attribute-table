@@ -272,6 +272,9 @@ export function useTableData({
     return () => {
       container.removeEventListener("mousedown", markActive);
       container.removeEventListener("focusin", markActive);
+      if (getActiveTableContainer() === container) {
+        setActiveTableContainer(null);
+      }
     };
   }, [containerRef]);
 
