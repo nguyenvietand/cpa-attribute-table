@@ -14,6 +14,7 @@ interface ResultSingleSelectProps {
     options: Option[];
     onChange: (value: string) => void;
     className?: string;
+    disabled?: boolean;
 }
 
 export default function ResultSingleSelect({
@@ -21,6 +22,7 @@ export default function ResultSingleSelect({
     options,
     onChange,
     className = "",
+    disabled = false,
 }: ResultSingleSelectProps) {
     const [isOpen, setIsOpen] = React.useState(false);
     const rootRef = React.useRef<HTMLDivElement | null>(null);
@@ -81,9 +83,12 @@ export default function ResultSingleSelect({
                 type="button"
                 onClick={(event) => {
                     event.stopPropagation();
+                    if (disabled) return;
                     setIsOpen(!isOpen);
                 }}
-                className={`w-full h-full text-left focus:outline-none cursor-pointer flex items-center ${className}`}
+                className={`w-full h-full text-left focus:outline-none flex items-center ${
+                    disabled ? "cursor-default" : "cursor-pointer"
+                } ${className}`}
             >
                 <span className="block w-full truncate">{displayLabel}</span>
             </button>

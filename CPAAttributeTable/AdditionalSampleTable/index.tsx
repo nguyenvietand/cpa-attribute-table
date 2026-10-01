@@ -62,6 +62,7 @@ interface AdditionalSampleTableProps {
   onHeightChange?: (height: number) => void;
   maxHeight?: string | number;
   columnWidths?: ColumnWidths;
+  disabled?: boolean;
 }
 
 /* DEFAULT TABLE LAYOUT CONFIGURATION */
@@ -94,6 +95,7 @@ export default function AdditionalSampleTable({
   onHeightChange,
   maxHeight,
   columnWidths,
+  disabled = false,
 }: AdditionalSampleTableProps) {
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -150,6 +152,7 @@ export default function AdditionalSampleTable({
     initialTotalSample,
     initialTotalError,
     containerRef,
+    disabled,
   });
 
   const {
@@ -326,6 +329,7 @@ export default function AdditionalSampleTable({
             title={selectedTableName}
             onTotalSampleChange={setCustomTotalSample}
             onTotalErrorChange={setCustomTotalError}
+            disabled={disabled}
           />
         </AccordionSummary>
 
@@ -347,6 +351,7 @@ export default function AdditionalSampleTable({
             selectedTableName={selectedTableName}
             onSelectedTableNameChange={setSelectedTableName}
             onDeleteAction={onDeleteAction}
+            disabled={disabled}
           />
 
           <TableGrid
@@ -388,6 +393,7 @@ export default function AdditionalSampleTable({
             selectionRange={selectionRange}
             onNavigateCell={moveCellByArrow}
             onNavigateNext={moveToNextCell}
+            disabled={disabled}
           />
 
           <TableFooter />
@@ -403,7 +409,7 @@ export default function AdditionalSampleTable({
           onAdd={handleAddRow}
         />
       )} */}
-      {isAddRowOpen && (
+      {!disabled && isAddRowOpen && (
         <AddRowsDialog
           open={isAddRowOpen}
           onClose={() => setIsAddRowOpen(false)}
@@ -411,7 +417,7 @@ export default function AdditionalSampleTable({
         />
       )}
 
-      {isCopyPasteOpen && (
+      {!disabled && isCopyPasteOpen && (
         <CopyAndPasteDialog
           open={isCopyPasteOpen}
           onClose={() => setIsCopyPasteOpen(false)}
@@ -429,6 +435,7 @@ export default function AdditionalSampleTable({
           attributes={attributes}
           evidenceOptions={evidenceOptions}
           onSave={handleSaveRow}
+          readOnly={disabled}
         />
       )}
 

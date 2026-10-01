@@ -8,6 +8,7 @@ interface TableHeaderProps {
   title: string;
   onTotalSampleChange?: (value: number) => void;
   onTotalErrorChange?: (value: number) => void;
+  disabled?: boolean;
 }
 
 export default function TableHeader({
@@ -17,6 +18,7 @@ export default function TableHeader({
   title,
   onTotalSampleChange,
   onTotalErrorChange,
+  disabled = false,
 }: TableHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between w-full select-none">
@@ -45,9 +47,12 @@ export default function TableHeader({
             type="number"
             min={0}
             value={totalSamples}
-            onFocus={(e) => e.target.select()}
-            onClick={(e) => (e.target as HTMLInputElement).select()}
+            disabled={disabled}
+            readOnly={disabled}
+            onFocus={(e) => !disabled && e.target.select()}
+            onClick={(e) => !disabled && (e.target as HTMLInputElement).select()}
             onChange={(e) => {
+              if (disabled) return;
               if (e.target.value === "") {
                 onTotalSampleChange?.(0);
                 return;
@@ -57,12 +62,17 @@ export default function TableHeader({
               onTotalSampleChange?.(val);
             }}
             onBlur={(e) => {
+              if (disabled) return;
               if (e.target.value === "") {
                 e.target.value = "0";
                 onTotalSampleChange?.(0);
               }
             }}
-            className="bg-white border border-gray-200 rounded text-center text-xs font-bold text-gray-700 shadow-2xs outline-none focus:border-blue-400 pl-2 pr-1"
+            className={`border rounded text-center text-xs font-bold shadow-2xs pl-2 pr-1 ${
+              disabled
+                ? "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed"
+                : "bg-white border-gray-200 text-gray-700 outline-none focus:border-blue-400"
+            }`}
             style={{
               width: "56px",
               height: "32px",
@@ -82,9 +92,12 @@ export default function TableHeader({
             type="number"
             min={0}
             value={totalErrors}
-            onFocus={(e) => e.target.select()}
-            onClick={(e) => (e.target as HTMLInputElement).select()}
+            disabled={disabled}
+            readOnly={disabled}
+            onFocus={(e) => !disabled && e.target.select()}
+            onClick={(e) => !disabled && (e.target as HTMLInputElement).select()}
             onChange={(e) => {
+              if (disabled) return;
               if (e.target.value === "") {
                 onTotalErrorChange?.(0);
                 return;
@@ -94,12 +107,17 @@ export default function TableHeader({
               onTotalErrorChange?.(val);
             }}
             onBlur={(e) => {
+              if (disabled) return;
               if (e.target.value === "") {
                 e.target.value = "0";
                 onTotalErrorChange?.(0);
               }
             }}
-            className="bg-white border border-gray-200 rounded text-center text-xs font-bold text-gray-700 shadow-2xs outline-none focus:border-blue-400 pl-2 pr-1"
+            className={`border rounded text-center text-xs font-bold shadow-2xs pl-2 pr-1 ${
+              disabled
+                ? "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed"
+                : "bg-white border-gray-200 text-gray-700 outline-none focus:border-blue-400"
+            }`}
             style={{
               width: "56px",
               height: "32px",

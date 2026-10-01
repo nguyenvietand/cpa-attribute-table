@@ -18,8 +18,8 @@ This document provides a complete, production-grade test suite catalog for the *
 | **08-TOOL** | Toolbar & Bulk Operations | Selection mode, select all, batch copy, table deletion event dispatch | 6 |
 | **09-HEAD** | Table Header & Totals Override | Table selector, total sample & error override, zero fallback, select-on-focus | 6 |
 | **10-UI** | Layout, Accordion & Responsive Design | Sticky headers/columns, maxHeight scrolling, font injection, height reporting | 6 |
-| **11-DIS** | Disabled / Read-Only Display Mode | Complete UI lockdown when `isControlDisabled` is true | 8 |
-| **TOTAL** | | | **85 Test Cases** |
+| **11-DIS** | Disabled / Read-Only Display Mode | Complete UI lockdown when `isControlDisabled` is true | 11 |
+| **TOTAL** | | | **88 Test Cases** |
 
 ---
 
@@ -108,10 +108,10 @@ This document provides a complete, production-grade test suite catalog for the *
 | :--- | :--- | :--- | :--- | :--- | :---: |
 | **TC-SPEC-01** | Open `EvidenceMultiSelect` dropdown | Evidence column cell. | Click inside Evidence cell. | Multi-select dropdown portal opens positioned below the cell; shows checkboxes for all evidence options. | **P0** |
 | **TC-SPEC-02** | Real-time search in Evidence dropdown | Evidence dropdown is open. | Type search keyword into dropdown search input. | Options list filters in real time matching the search query. | **P1** |
-| **TC-SPEC-03** | Multi-select files and semicolon serialization | Evidence dropdown is open. | Select "File_A.pdf" and "File_B.png". | Cell displays tags for selected files; underlying data stores semicolon-delimited string: `"File_A.pdf; File_B.png"`. | **P0** |
+| **TC-SPEC-03** | Multi-select files and green checkmark | Evidence dropdown is open. | Select "File_A.pdf" and "File_B.png". | Cell displays tags/text for selected files; in dropdown, selected options display a green checkmark (`text-emerald-600 font-bold`) consistent with disabled mode styling; underlying data stores semicolon-delimited string: `"File_A.pdf; File_B.png"`. | **P0** |
 | **TC-SPEC-04** | Toggle Result from Pass to Fail | Row has Result = "Pass". | Click Result cell, select "Fail" from dropdown. | Cell styling changes to red badge ("Fail"); `totalErrorOutput` increments by 1. | **P0** |
 | **TC-SPEC-05** | Toggle Result from Fail to Pass | Row has Result = "Fail". | Click Result cell, select "Pass" from dropdown. | Cell styling changes to green badge ("Pass"); `totalErrorOutput` decrements by 1. | **P0** |
-| **TC-SPEC-06** | Evidence options preservation | Row has evidence not in `evidenceFileInputList`. | Render row with custom evidence value. | `mergeEvidenceOptions` merges the existing value into the option list so it is not lost or displayed as blank. | **P1** |
+| **TC-SPEC-06** | Unlisted evidence files pinned to top | Row has evidence file(s) not in `evidenceFileInputList`. | Render row and open Evidence dropdown. | `mergeEvidenceOptions` merges the existing unlisted files and places them at the **very top of the options list**; files are immediately visible and preserved; never lost or displayed as blank. | **P1** |
 | **TC-SPEC-07** | Keyboard navigation in dropdowns | Result or Evidence dropdown open. | Press `ArrowUp`, `ArrowDown`, `Enter`, or `Escape`. | Options can be highlighted via keyboard; `Escape` closes the dropdown and returns focus to table. | **P2** |
 
 ---
@@ -179,9 +179,13 @@ This document provides a complete, production-grade test suite catalog for the *
 | **TC-DIS-03** | View Row Details dialog in Disabled Mode | Control is disabled. | Click icon in Week column (changed from red pencil to eye/View icon). | Dialog opens in Read-Only mode; all fields are disabled; **Save button is hidden**, only Close button is visible. | **P0** |
 | **TC-DIS-04** | Row delete icon hidden | Control is disabled. | Inspect Week column. | Red trash can (Delete Row) icon is completely hidden; row deletion is impossible. | **P0** |
 | **TC-DIS-05** | Toolbar mutation buttons locked | Control is disabled. | Inspect Table Toolbar. | Buttons `Add Row`, `Paste`, `Copy & Paste`, and `Delete Table` are disabled / hidden. | **P0** |
-| **TC-DIS-06** | Dropdowns locked in Disabled Mode | Control is disabled. | Click Evidence or Result cells. | Dropdowns do not open; static badge values ("Pass", "Fail", file tags) remain visible. | **P0** |
-| **TC-DIS-07** | Column management locked | Control is disabled. | Hover over column headers or attempt to drag. | `+` Add Column button is hidden; Drag and drop reordering is disabled. | **P1** |
+| **TC-DIS-06A** | Supporting Evidence dropdown viewer in Disabled Mode | Control is disabled; row contains multiple attached evidence files. | Click Supporting Evidence cell. | Dropdown opens to prevent text overflow; **ONLY selected/attached files are displayed** with checkmarks; unselected options are hidden; items cannot be clicked or toggled (read-only); displays "No files attached" if empty. | **P0** |
+| **TC-DIS-06B** | Assessment Result locked in Disabled Mode | Control is disabled. | Click Result cell. | Dropdown does not open; static Pass/Fail badge remains displayed. | **P0** |
+| **TC-DIS-07** | Column management locked | Control is disabled. | Hover over column headers or attempt to drag. | `+` Add Column button is hidden; Drag and drop reordering is disabled; description inputs are read-only. | **P1** |
 | **TC-DIS-08** | Read-only copy and selection allowed | Control is disabled. | Click cell, drag range, press `Ctrl + C`, click `Copy All`. | Range selection and clipboard copy continue to work seamlessly (identical to Excel Protected View). | **P0** |
+| **TC-DIS-09** | Expand cell dialog in Disabled Mode | Control is disabled. | Click Expand (`OpenInFullIcon`) on any text cell. | `CellTextDialog` opens in View mode ("View Cell: ..."); textarea is `readOnly`; **Save Changes button is hidden**; Close button closes the dialog. | **P0** |
+| **TC-DIS-10** | Paste shortcut (`Ctrl + V`) blocked in Disabled Mode | Control is disabled and cells are selected. | Press `Ctrl + V` on keyboard with clipboard data. | Paste event is intercepted and blocked; no cells or rows are updated; grid data remains untouched. | **P0** |
+| **TC-DIS-11** | Localhost Developer Harness Toggle (`Ctrl + Shift + D` / `setDisabled`) | Running on localhost / port 8181. | Press `Ctrl + Shift + D`, use `?disabled=true`, or run `setDisabled(true)` in console. | Toggles Disabled mode dynamically on local test harness without modifying production manifest. | **P1** |
 
 ---
 
@@ -198,5 +202,5 @@ This document provides a complete, production-grade test suite catalog for the *
 - [ ] Suite 08: Toolbar & Bulk Operations (6/6)
 - [ ] Suite 09: Table Header & Totals Override (6/6)
 - [ ] Suite 10: Layout, Accordion & Responsive Design (6/6)
-- [ ] Suite 11: Disabled / Read-Only Mode (8/8)
+- [ ] Suite 11: Disabled / Read-Only Mode (11/11)
 ```

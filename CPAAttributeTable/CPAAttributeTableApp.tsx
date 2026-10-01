@@ -11,6 +11,7 @@ interface CPAAttributeTableAppProps {
     defaultTableName: string;
     tableNameOptions: string[];
     evidenceFileOptions: string[];
+    disabled?: boolean;
     onDataChange?: (jsonValue: string) => void;
     onDeleteAction?: () => void;
     onTotalSampleChange?: (total: number) => void;
@@ -352,6 +353,7 @@ export default function CPAAttributeTableApp({
     defaultTableName,
     tableNameOptions,
     evidenceFileOptions,
+    disabled = false,
     onDataChange,
     onDeleteAction,
     onTotalSampleChange,
@@ -426,7 +428,8 @@ export default function CPAAttributeTableApp({
                         onTotalErrorChange={onTotalErrorChange}
                         onHeightChange={onHeightChange}
                         onDeleteAction={onDeleteAction}
-                        maxHeight={maxHeight?? tableMaxHeight}
+                        maxHeight={maxHeight ?? tableMaxHeight}
+                        disabled={disabled}
                     />
                 </div>
             </main>

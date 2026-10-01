@@ -5,6 +5,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import { mergeEvidenceOptions, splitEvidenceValue, joinEvidenceValues } from "./evidenceUtils";
 import EvidenceMultiSelect from "./EvidenceMultiSelect";
 import ResultSingleSelect from "./ResultSingleSelect";
@@ -71,6 +72,7 @@ interface TableGridProps {
   } | null;
   onNavigateCell?: (direction: "up" | "down" | "left" | "right") => void;
   onNavigateNext?: (reverse?: boolean) => void;
+  disabled?: boolean;
 }
 
 interface SortableHeaderCellProps {
@@ -84,6 +86,7 @@ interface SortableHeaderCellProps {
   handleMouseDown: (e: React.MouseEvent, columnId: string) => void;
   hoveredCol: string | null;
   setHoveredCol: (id: string | null) => void;
+  disabled?: boolean;
 }
 
 function SortableHeaderCell({
@@ -97,6 +100,7 @@ function SortableHeaderCell({
   handleMouseDown,
   hoveredCol,
   setHoveredCol,
+  disabled = false,
 }: SortableHeaderCellProps) {
   const {
     attributes: dndAttributes,
@@ -105,7 +109,7 @@ function SortableHeaderCell({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: attr.id });
+  } = useSortable({ id: attr.id, disabled });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -128,23 +132,27 @@ function SortableHeaderCell({
       <div className="relative flex flex-col w-full">
         <div className="flex items-center justify-between w-full pr-4">
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <button
-              type="button"
-              onClick={() => onDeleteAttribute(attr.id)}
-              className="text-[#C00000] hover:text-[#900000] cursor-pointer flex items-center justify-center shrink-0"
-              title={`Delete ${attr.name}`}>
-              <DeleteIcon sx={{ fontSize: 14 }} />
-            </button>
+            {!disabled && (
+              <button
+                type="button"
+                onClick={() => onDeleteAttribute(attr.id)}
+                className="text-[#C00000] hover:text-[#900000] cursor-pointer flex items-center justify-center shrink-0"
+                title={`Delete ${attr.name}`}>
+                <DeleteIcon sx={{ fontSize: 14 }} />
+              </button>
+            )}
 
             {/* Drag Handle */}
-            <div
-              {...listeners}
-              {...dndAttributes}
-              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex items-center justify-center shrink-0"
-              title="Drag to reorder column"
-            >
-              <DragIndicatorIcon sx={{ fontSize: 16 }} />
-            </div>
+            {!disabled && (
+              <div
+                {...listeners}
+                {...dndAttributes}
+                className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex items-center justify-center shrink-0"
+                title="Drag to reorder column"
+              >
+                <DragIndicatorIcon sx={{ fontSize: 16 }} />
+              </div>
+            )}
 
             <span className="text-xs font-bold text-gray-800 px-1 py-0.5 normal-case select-none truncate">
               {attr.name}
@@ -153,31 +161,39 @@ function SortableHeaderCell({
         </div>
         <textarea
           value={attr.description || attr.columnName || ""}
-          onChange={(e) =>
+          readOnly={disabled}
+          onChange={(e) => {
+            if (disabled) return;
             onUpdateAttribute(attr.id, {
               description: e.target.value,
               columnName: e.target.value,
-            })
-          }
+            });
+          }}
           aria-label={`Edit ${attr.name} description`}
-          placeholder="Enter description..."
+          placeholder={disabled ? "" : "Enter description..."}
           rows={3}
-          className="text-[11px] text-gray-500 font-normal normal-case bg-transparent border border-transparent hover:border-gray-300 focus:border-gray-400 focus:bg-white outline-hidden rounded px-1.5 py-1 w-full mt-1.5 leading-snug resize-none overflow-y-auto"
+          className={`text-[11px] font-normal normal-case outline-hidden rounded px-1.5 py-1 w-full mt-1.5 leading-snug resize-none overflow-y-auto ${
+            disabled
+              ? "text-gray-600 bg-transparent border border-transparent select-text cursor-default"
+              : "text-gray-500 bg-transparent border border-transparent hover:border-gray-300 focus:border-gray-400 focus:bg-white"
+          }`}
         />
 
-        <button
-          type="button"
-          onClick={() => onAddAttribute(idx + 1)}
-          onMouseEnter={() => setHoveredCol(attr.id)}
-          onMouseLeave={() => setHoveredCol(null)}
-          style={{
-            opacity: hoveredCol === attr.id ? 1 : 0,
-            transition: "opacity 150ms ease-in-out",
-          }}
-          className="z-30 absolute -right-3 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 w-5 h-5 rounded-full cursor-pointer flex items-center justify-center border border-emerald-250 bg-white shadow-xs"
-          title="Add Attribute Column">
-          <AddIcon sx={{ fontSize: 12 }} />
-        </button>
+        {!disabled && (
+          <button
+            type="button"
+            onClick={() => onAddAttribute(idx + 1)}
+            onMouseEnter={() => setHoveredCol(attr.id)}
+            onMouseLeave={() => setHoveredCol(null)}
+            style={{
+              opacity: hoveredCol === attr.id ? 1 : 0,
+              transition: "opacity 150ms ease-in-out",
+            }}
+            className="z-30 absolute -right-3 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 w-5 h-5 rounded-full cursor-pointer flex items-center justify-center border border-emerald-250 bg-white shadow-xs"
+            title="Add Attribute Column">
+            <AddIcon sx={{ fontSize: 12 }} />
+          </button>
+        )}
       </div>
       <div
         onMouseDown={(e) => handleMouseDown(e, attr.id)}
@@ -223,6 +239,7 @@ export default function TableGrid({
   selectionRange,
   onNavigateCell,
   onNavigateNext,
+  disabled = false,
 }: TableGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const prevRowsLength = useRef(rows.length);
@@ -384,24 +401,26 @@ export default function TableGrid({
                     }}
                     className="sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 align-middle resize-">
                     <div className="flex items-center gap-1.5 justify-center">
-                      <button
-                        type="button"
-                        className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAddRow();
-                          setTimeout(() => {
-                            if (containerRef.current) {
-                              containerRef.current.scrollTo({
-                                top: containerRef.current.scrollHeight,
-                                behavior: "smooth",
-                              });
-                            }
-                          }, 50);
-                        }}
-                      >
-                        <AddIcon sx={{ fontSize: 16 }} className="text-[#C00000] hover:text-green-800" />
-                      </button>
+                      {!disabled && (
+                        <button
+                          type="button"
+                          className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAddRow();
+                            setTimeout(() => {
+                              if (containerRef.current) {
+                                containerRef.current.scrollTo({
+                                  top: containerRef.current.scrollHeight,
+                                  behavior: "smooth",
+                                });
+                              }
+                            }, 50);
+                          }}
+                        >
+                          <AddIcon sx={{ fontSize: 16 }} className="text-[#C00000] hover:text-green-800" />
+                        </button>
+                      )}
                       <input
                         type="checkbox"
                         checked={
@@ -432,25 +451,33 @@ export default function TableGrid({
                         <input
                           type="text"
                           value={columnHeaders.week}
-                          onChange={(e) =>
-                            onUpdateColumnHeader("week", e.target.value)
-                          }
-                          className="text-xs font-bold text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:bg-white focus:ring-1  outline-hidden rounded px-1 py-0.5 w-full normal-case tracking-wider"
+                          readOnly={disabled}
+                          onChange={(e) => {
+                            if (disabled) return;
+                            onUpdateColumnHeader("week", e.target.value);
+                          }}
+                          className={`text-xs font-bold text-gray-800 bg-transparent border-b border-transparent rounded px-1 py-0.5 w-full normal-case tracking-wider ${
+                            disabled
+                              ? "cursor-default"
+                              : "hover:border-gray-300 focus:bg-white focus:ring-1 outline-hidden"
+                          }`}
                         />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => onAddAttribute(0)}
-                        onMouseEnter={() => setHoveredCol("week")}
-                        onMouseLeave={() => setHoveredCol(null)}
-                        style={{
-                          opacity: hoveredCol === "week" ? 1 : 0,
-                          transition: "opacity 150ms ease-in-out",
-                        }}
-                        className="z-30 absolute -right-3 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 w-5 h-5 rounded-full cursor-pointer flex items-center justify-center border border-emerald-250 bg-white shadow-xs"
-                        title="Add Attribute Column">
-                        <AddIcon sx={{ fontSize: 12 }} />
-                      </button>
+                      {!disabled && (
+                        <button
+                          type="button"
+                          onClick={() => onAddAttribute(0)}
+                          onMouseEnter={() => setHoveredCol("week")}
+                          onMouseLeave={() => setHoveredCol(null)}
+                          style={{
+                            opacity: hoveredCol === "week" ? 1 : 0,
+                            transition: "opacity 150ms ease-in-out",
+                          }}
+                          className="z-30 absolute -right-3 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 w-5 h-5 rounded-full cursor-pointer flex items-center justify-center border border-emerald-250 bg-white shadow-xs"
+                          title="Add Attribute Column">
+                          <AddIcon sx={{ fontSize: 12 }} />
+                        </button>
+                      )}
                     </div>
                     <div
                       onMouseDown={(e) => handleMouseDown(e, "week")}
@@ -475,6 +502,7 @@ export default function TableGrid({
                         handleMouseDown={handleMouseDown}
                         hoveredCol={hoveredCol}
                         setHoveredCol={setHoveredCol}
+                        disabled={disabled}
                       />
                     ))}
                   </SortableContext>
@@ -597,36 +625,59 @@ export default function TableGrid({
                           : <ExcelCellEditor
                             value={row.week}
                             onChange={(val) => onWeekChange(row.id, val)}
+                            disabled={disabled}
                             prefix={
                               <div className="flex items-center gap-1 shrink-0">
-                                <button
-                                  type="button"
-                                  className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                  }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onEditClick(row);
-                                  }}
-                                >
-                                  <EditIcon sx={{ fontSize: 14, color: "red" }} />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                  }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDeleteRow(row.id);
-                                  }}
-                                >
-                                  <DeleteIcon sx={{ fontSize: 14, color: "red" }} />
-                                </button>
+                                {disabled ? (
+                                  <button
+                                    type="button"
+                                    className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onEditClick(row);
+                                    }}
+                                    title="View Row Details"
+                                  >
+                                    <VisibilityIcon sx={{ fontSize: 14, color: "#4B5563" }} />
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEditClick(row);
+                                      }}
+                                      title="Edit Row"
+                                    >
+                                      <EditIcon sx={{ fontSize: 14, color: "red" }} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDeleteRow(row.id);
+                                      }}
+                                      title="Delete Row"
+                                    >
+                                      <DeleteIcon sx={{ fontSize: 14, color: "red" }} />
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             }
                             onExpand={() =>
@@ -668,6 +719,7 @@ export default function TableGrid({
                                 onChange={(newVal) =>
                                   onAttrChange(row.id, attr.id, newVal)
                                 }
+                                disabled={disabled}
                                 onExpand={() =>
                                   setCellModalState({
                                     open: true,
@@ -718,6 +770,7 @@ export default function TableGrid({
                               }}
                               compact
                               label=""
+                              disabled={disabled}
                             />
                           </div>
                         }
@@ -749,6 +802,7 @@ export default function TableGrid({
                                 ? "bg-transparent!"
                                 : ""
                                 }`}
+                              disabled={disabled}
                             />
                           </div>
                         )}
@@ -769,6 +823,7 @@ export default function TableGrid({
                           : <ExcelCellEditor
                             value={row.comment || ""}
                             onChange={(val) => onCommentChange(row.id, val)}
+                            disabled={disabled}
                             onExpand={() =>
                               setCellModalState({
                                 open: true,
@@ -802,6 +857,7 @@ export default function TableGrid({
           initialValue={cellModalState.value}
           onClose={() => setCellModalState(null)}
           onSave={handleSaveCellModal}
+          readOnly={disabled}
         />
       )}
     </div>

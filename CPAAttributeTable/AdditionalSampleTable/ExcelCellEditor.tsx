@@ -14,6 +14,7 @@ interface ExcelCellEditorProps {
   onNavigateUp?: () => void;
   onNavigateNext?: () => void;
   onNavigatePrev?: () => void;
+  disabled?: boolean;
 }
 
 export default function ExcelCellEditor({
@@ -27,6 +28,7 @@ export default function ExcelCellEditor({
   onNavigateUp,
   onNavigateNext,
   onNavigatePrev,
+  disabled = false,
 }: ExcelCellEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -41,7 +43,7 @@ export default function ExcelCellEditor({
 
   // Support F2 key to enter edit mode when cell is selected like Excel
   useEffect(() => {
-    if (!isActive || isEditing) return;
+    if (!isActive || isEditing || disabled) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "F2") {
         e.preventDefault();
@@ -50,7 +52,7 @@ export default function ExcelCellEditor({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isActive, isEditing]);
+  }, [isActive, isEditing, disabled]);
 
   const adjustHeight = () => {
     if (!textareaRef.current) return;
@@ -171,6 +173,7 @@ export default function ExcelCellEditor({
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();
+        if (disabled) return;
         setIsEditing(true);
       }}
       style={{

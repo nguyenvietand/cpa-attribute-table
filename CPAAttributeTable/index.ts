@@ -13,6 +13,17 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
     private totalErrorOutput = 0;
     private heightOutput = 0;
     private pendingPageLoad: Record<string, boolean> = {};
+    private harnessDisabled = false;
+
+    private handleKeyDown = (e: KeyboardEvent) => {
+        // Toggle Disabled Mode on Ctrl + Shift + D (or Ctrl + Alt + D)
+        if (e.ctrlKey && (e.shiftKey || e.altKey) && e.key.toLowerCase() === 'd') {
+            e.preventDefault();
+            this.harnessDisabled = !this.harnessDisabled;
+            console.log(`%c[TEST HARNESS] Toggled Disabled Mode: ${this.harnessDisabled}`, 'color: #2563eb; font-weight: bold;');
+            this.render();
+        }
+    };
 
     public init(
         context: ComponentFramework.Context<IInputs>,
@@ -24,6 +35,32 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
         this.context = context;
         this.notifyOutputChanged = notifyOutputChanged;
         this.root = createRoot(container);
+
+        // Check if running on localhost / test harness
+        const isLocalhost = typeof window !== 'undefined' &&
+            (window.location.hostname === 'localhost' ||
+             window.location.hostname === '127.0.0.1' ||
+             window.location.port === '8181');
+
+        if (isLocalhost) {
+            // Also support ?disabled=true on URL
+            const urlDisabled = new URLSearchParams(window.location.search).get('disabled');
+            if (urlDisabled === 'true') {
+                this.harnessDisabled = true;
+            }
+            window.addEventListener('keydown', this.handleKeyDown);
+
+            // Expose console helpers on window for effortless harness testing
+            (window as any).setDisabled = (val?: boolean) => {
+                this.harnessDisabled = typeof val === 'boolean' ? val : !this.harnessDisabled;
+                console.log(`%c[TEST HARNESS] Disabled Mode set to: ${this.harnessDisabled}`, 'color: #2563eb; font-weight: bold;');
+                this.render();
+            };
+            (window as any).toggleDisabled = () => (window as any).setDisabled();
+
+            console.log('%c[TEST HARNESS] Press Ctrl + Shift + D or type setDisabled(true/false) in console to toggle Disabled / Read-Only mode', 'color: #16a34a; font-weight: bold;');
+        }
+
         this.render();
     }
 
@@ -43,6 +80,11 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
     }
 
     public destroy(): void {
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('keydown', this.handleKeyDown);
+            delete (window as any).setDisabled;
+            delete (window as any).toggleDisabled;
+        }
         this.root?.unmount();
         this.root = null;
         this.notifyOutputChanged = null;
@@ -137,6 +179,11 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
         const width = Number.isFinite(allocatedWidth) && allocatedWidth > 0 ? allocatedWidth : 1200;
         const height = Number.isFinite(allocatedHeight) && allocatedHeight > 0 ? allocatedHeight : 700;
 
+        const isControlDisabled = Boolean(
+            this.context.mode.isControlDisabled ||
+            this.harnessDisabled
+        );
+
         this.root.render(
             React.createElement(CPAAttributeTableApp, {
                 width,
@@ -147,6 +194,7 @@ export class CPAAttributeTableControl implements ComponentFramework.StandardCont
                 defaultTableName,
                 tableNameOptions,
                 evidenceFileOptions,
+                disabled: isControlDisabled,
                 onDeleteAction: this.handleDeleteAction,
                 onDataChange: this.handleDataChange,
                 onTableNameChange: this.handleTableNameChange,
