@@ -127,7 +127,7 @@ export default function TableToolbar({
           <button
             type="button"
             className="p-1.5 text-gray-455 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer flex items-center justify-center"
-            title="Delete Section"
+            //title="Delete Section"
             onClick={() => {
               if (onDeleteAction) {
                 onDeleteAction();

@@ -10,16 +10,16 @@ This document provides a complete, production-grade test suite catalog for the *
 | :--- | :--- | :--- | :---: |
 | **01-INIT** | Initialization & PCF Lifecycle | Manifest parameters, dataset paging, JSON parsing, outputs synchronization | 9 |
 | **02-CELL** | Excel-Like Cell Editing (`ExcelCellEditor`) | Single/Double click, F2, multiline Alt+Enter, Enter/Tab navigation, focus retention | 14 |
-| **03-NAV** | Grid Selection & Keyboard Navigation | Arrow keys, drag range selection, TSV clipboard copy, active cell styles | 8 |
+| **03-NAV** | Grid Selection & Keyboard Navigation | Arrow keys, drag range selection, TSV clipboard copy, active cell styles, copy priority | 9 |
 | **04-ROW** | Row Operations (CRUD) | Single row add, batch row add, edit dialog, delete row, totals auto-recalculation | 7 |
 | **05-COL** | Dynamic Attributes & Column Management | Add/rename/delete dynamic columns, DnD column reordering, column resizing | 6 |
-| **06-SPEC** | Special Columns: Evidence & Result | Multi-select dropdown, search, tag rendering, Pass/Fail toggle, error count updates | 7 |
-| **07-CLIP** | Clipboard Engine & Paste Parser | Excel TSV/CSV direct paste, range boundary validation, Copy & Paste mapping dialog | 8 |
+| **06-SPEC** | Special Columns: Evidence & Result | Multi-select dropdown, search, tag rendering, Pass/Fail toggle, error count updates | 8 |
+| **07-CLIP** | Clipboard Engine & Paste Parser | Excel TSV/CSV direct paste, range boundary validation, Copy & Paste mapping dialog | 10 |
 | **08-TOOL** | Toolbar & Bulk Operations | Selection mode, select all, batch copy, table deletion event dispatch | 6 |
 | **09-HEAD** | Table Header & Totals Override | Table selector, total sample & error override, zero fallback, select-on-focus | 6 |
 | **10-UI** | Layout, Accordion & Responsive Design | Sticky headers/columns, maxHeight scrolling, font injection, height reporting | 6 |
 | **11-DIS** | Disabled / Read-Only Display Mode | Complete UI lockdown when `isControlDisabled` is true | 11 |
-| **TOTAL** | | | **88 Test Cases** |
+| **TOTAL** | | | **92 Test Cases** |
 
 ---
 
@@ -72,6 +72,7 @@ This document provides a complete, production-grade test suite catalog for the *
 | **TC-NAV-06** | Copy range to clipboard (`Ctrl + C`) | Range of cells selected (e.g. 2 rows x 3 cols). | Press `Ctrl + C`. | TSV-formatted text is copied to clipboard; toast notification displays: *"Successfully copied selected cell range (2x3) to clipboard!"*. | **P0** |
 | **TC-NAV-07** | Copy single cell text selection fallback | Inside textarea with partial text highlighted. | Press `Ctrl + C`. | Only the highlighted text substring is copied (native browser behavior); does not copy entire cell range. | **P1** |
 | **TC-NAV-08** | Click outside clears selection | Active cell or range selected. | Click outside `<tbody>` on neutral background. | Selection range and active cell border are cleared. | **P2** |
+| **TC-NAV-09** | Copy shortcut priority (`Ctrl + C`): Cell Range vs Checked Rows | Table is in Selection Mode with rows checked. | 1. Drag or select a multi-cell range (or any non-order cell) and press `Ctrl + C`.<br>2. Select a single Order/Checkbox cell and press `Ctrl + C`. | 1. Prioritizes range copy: exports the selected cell range.<br>2. Prioritizes row copy: exports the full data of all checked rows. | **P0** |
 
 ---
 
@@ -85,7 +86,7 @@ This document provides a complete, production-grade test suite catalog for the *
 | **TC-ROW-04** | Validation in `EditRowDialog` | EditRowDialog is open. | Clear Sample ID field and submit. | Form submission is blocked; red border appears on Sample ID with validation message *"Sample ID is required"*. | **P1** |
 | **TC-ROW-05** | Delete single row | Table has rows. | Click red trash can icon in Week column of Row 2. | Row 2 is removed; subsequent rows are re-indexed immediately (Order numbers remain contiguous: 1, 2, 3...). | **P0** |
 | **TC-ROW-06** | Auto-update `Total Samples` on row add/delete | `Total Samples` is not manually overridden. | Add 2 rows, then delete 1 row. | `Total Samples` automatically increments by 2, then decrements by 1; `totalSampleOutput` emits new count. | **P0** |
-| **TC-ROW-07** | Auto-update `Total Errors` on Fail row deletion | A row has Result = "Fail". | Delete the row with Result = "Fail". | `Total Errors` count automatically decrements by 1; `totalErrorOutput` reflects the change. | **P0** |
+| **TC-ROW-07** | Auto-update `Total Errors` on Fail row deletion | A row has Result = "Fail". | Delete the row with Result = "Fail". | `Total Errors` count automatically decrements by 1 (calculated strictly from remaining rows where `Result === "Fail"`); `totalErrorOutput` reflects the change. | **P0** |
 
 ---
 
@@ -113,6 +114,7 @@ This document provides a complete, production-grade test suite catalog for the *
 | **TC-SPEC-05** | Toggle Result from Fail to Pass | Row has Result = "Fail". | Click Result cell, select "Pass" from dropdown. | Cell styling changes to green badge ("Pass"); `totalErrorOutput` decrements by 1. | **P0** |
 | **TC-SPEC-06** | Unlisted evidence files pinned to top | Row has evidence file(s) not in `evidenceFileInputList`. | Render row and open Evidence dropdown. | `mergeEvidenceOptions` merges the existing unlisted files and places them at the **very top of the options list**; files are immediately visible and preserved; never lost or displayed as blank. | **P1** |
 | **TC-SPEC-07** | Keyboard navigation in dropdowns | Result or Evidence dropdown open. | Press `ArrowUp`, `ArrowDown`, `Enter`, or `Escape`. | Options can be highlighted via keyboard; `Escape` closes the dropdown and returns focus to table. | **P2** |
+| **TC-SPEC-08** | Dynamic attribute values do not count towards `Total Errors` | Row has Result = "Pass" and dynamic attribute(s) set to "Fail" (or any other text). | Inspect `Total Errors` input in table header and emitted `totalErrorOutput`. | `Total Errors` count remains 0; dynamic attribute values do NOT affect error count. Error count strictly increments only when the row's `Result` column is set to "Fail". | **P0** |
 
 ---
 
@@ -124,10 +126,12 @@ This document provides a complete, production-grade test suite catalog for the *
 | **TC-CLIP-02** | Paste exceeding table boundaries | Clipboard contains 10 rows; active cell is at row 8 of 10. | Click `Paste` button on toolbar. | Paste is rejected; error toast appears: *"Cannot paste because content exceeds the available range."*. | **P0** |
 | **TC-CLIP-03** | Auto-strip Order column during paste | Clipboard contains data copied with Row Numbers (e.g. 1, 2, 3 in Col 1). | Paste with active column set to "order". | Parser automatically strips the Order column and maps remaining columns to Week, Attributes, etc. | **P1** |
 | **TC-CLIP-04** | Case-insensitive Result value parsing | Clipboard has "pass", "FAIL", "Fail", "PASS". | Paste into Result column. | Values are normalized to canonical `"Pass"` or `"Fail"`; `totalErrorOutput` updates accurately. | **P1** |
-| **TC-CLIP-05** | Paste when no cell is selected | Clipboard contains tabular TSV data; no active cell. | Click `Paste` button. | Opens `CopyAndPasteDialog` allowing user to specify target row range or append as new rows. | **P1** |
-| **TC-CLIP-06** | Advanced Paste Dialog (`CopyAndPasteDialog`) | Valid data in clipboard. | Click `Copy & Paste` toolbar button. | Dialog displays preview table, source vs target column mapping dropdowns, and from/to row selectors. | **P1** |
+| **TC-CLIP-05** | Paste when no cell is selected (Append rows) | Clipboard contains tabular TSV data; no active cell selected. | Click `Paste from Excel` button on toolbar (or press `Ctrl + V`). | Parser processes TSV data and appends them as new rows at the bottom of the table; toast displays: *"Successfully pasted and imported N row(s) from Excel!"*. | **P1** |
+| **TC-CLIP-06** | Range Fill Dialog (`CopyAndPasteDialog`) | Table contains rows. | Click `Copy & Paste` toolbar button. | Opens `CopyAndPasteDialog` modal; provides From Row and To Row dropdown selectors, Attributes multiselect, and Paste Sample Section textarea; clicking Apply fills the specified content across the selected row range and columns. | **P1** |
 | **TC-CLIP-07** | Invalid / Empty clipboard paste | Clipboard is empty or contains non-tabular text. | Click `Paste`. | Handled gracefully without error; warning toast shown if clipboard is empty. | **P2** |
-| **TC-CLIP-08** | Multiline text cell paste | Single cell on clipboard contains text with embedded newlines. | Paste into a single comment cell. | Single cell absorbs the multiline text; does not accidentally split across multiple rows. | **P1** |
+| **TC-CLIP-08** | Multiline cell paste from Excel (RFC 4180 parsing) | Single cell on clipboard from Excel contains text with embedded newlines wrapped in quotes (`"Line 1\r\nLine 2"`). | Paste into a single comment or attribute cell. | `parseTSV` preserves the quoted newlines; single cell absorbs the multiline text; does **not** accidentally split across multiple table rows. | **P0** |
+| **TC-CLIP-09** | Multiline cell copy to Excel (RFC 4180 escaping) | Table row contains multiline cell text (e.g. comment with newlines). | Copy selected rows or cell range (`Ctrl + C` or toolbar button), then paste into Excel. | `escapeTSVCell` wraps multiline cell in quotes and doubles internal quotes; pasting into Excel keeps text within a **single Excel cell** (in-cell Alt+Enter) without jumping across rows or columns. | **P0** |
+| **TC-CLIP-10** | In-cell multiline textarea paste | `ExcelCellEditor` or `CellTextDialog` textarea is currently focused and active (`isTextInput = true`). | Press `Ctrl + V` with multiline text or Excel-quoted cell. | Focus is **not** stolen; textarea is **not** blurred; table rows are **not** overwritten; clean unquoted text is inserted directly at the cursor position. | **P0** |
 
 ---
 
@@ -194,11 +198,11 @@ This document provides a complete, production-grade test suite catalog for the *
 ```markdown
 - [ ] Suite 01: Initialization & PCF Lifecycle (9/9)
 - [ ] Suite 02: Excel-Like Cell Editing (14/14)
-- [ ] Suite 03: Grid Selection & Keyboard Navigation (8/8)
+- [ ] Suite 03: Grid Selection & Keyboard Navigation (9/9)
 - [ ] Suite 04: Row Operations (CRUD) (7/7)
 - [ ] Suite 05: Dynamic Attributes & Column Management (6/6)
-- [ ] Suite 06: Special Columns: Evidence & Result (7/7)
-- [ ] Suite 07: Clipboard Engine & Paste Parser (8/8)
+- [ ] Suite 06: Special Columns: Evidence & Result (8/8)
+- [ ] Suite 07: Clipboard Engine & Paste Parser (10/10)
 - [ ] Suite 08: Toolbar & Bulk Operations (6/6)
 - [ ] Suite 09: Table Header & Totals Override (6/6)
 - [ ] Suite 10: Layout, Accordion & Responsive Design (6/6)

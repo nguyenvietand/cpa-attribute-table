@@ -4,7 +4,7 @@ import { SampleRow, Attribute } from "./mockData";
 import { arrayMove } from "@dnd-kit/sortable";
 import { splitEvidenceValue, joinEvidenceValues } from "./evidenceUtils";
 import { setActiveTableContainer, getActiveTableContainer, subscribeActiveTableContainer } from "./activeTableRegistry";
-import { processPaste } from "./utils/pasteParser";
+import { processPaste, parseTSV } from "./utils/pasteParser";
 
 export interface SelectionRange {
   start: { rowId: number; colId: string };
@@ -312,13 +312,29 @@ export function useTableData({
       const text = e.clipboardData?.getData("text/plain") || "";
       if (!text) return;
 
-      const hasTab = text.includes("\t");
-      const hasNewline = text.trim().includes("\n") || text.trim().includes("\r");
-      const isMultiCell = hasTab || hasNewline;
-
-      const isMultiCellRange = selectionRange && (selectionRange.start.rowId !== selectionRange.end.rowId || selectionRange.start.colId !== selectionRange.end.colId);
-
-      if (isTextInput && !isMultiCell && !isMultiCellRange) {
+      if (isTextInput) {
+        // When user is typing inside an input or textarea (e.g. ExcelCellEditor, dialogs),
+        // let the input handle the paste naturally.
+        // If the clipboard content is an Excel-quoted single cell (e.g. "Line 1\r\nLine 2"\r\n),
+        // cleanly unwrap the outer quotes and carriage returns before inserting.
+        const grid = parseTSV(text);
+        if (grid.length === 1 && grid[0].length === 1) {
+          const cleanVal = grid[0][0];
+          if (text.startsWith('"') && (text.endsWith('"\r\n') || text.endsWith('"\n') || text.endsWith('"'))) {
+            e.preventDefault();
+            const input = activeEl as HTMLInputElement | HTMLTextAreaElement;
+            if (typeof input.selectionStart === "number" && typeof input.selectionEnd === "number") {
+              const start = input.selectionStart;
+              const end = input.selectionEnd;
+              const before = input.value.substring(0, start);
+              const after = input.value.substring(end);
+              input.value = before + cleanVal + after;
+              input.selectionStart = input.selectionEnd = start + cleanVal.length;
+              input.dispatchEvent(new Event("input", { bubbles: true }));
+              input.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          }
+        }
         return;
       }
 
@@ -573,12 +589,7 @@ export function useTableData({
   }, [initialEvidenceOptions]);
 
   const totalSamples = customTotalSample ?? rows.length;
-  const defaultTotalErrors = rows.filter((row) => {
-    const hasFailAttr = attributes.some(
-      (attr) => row.attributes[attr.id] === "Fail",
-    );
-    return hasFailAttr || row.result === "Fail";
-  }).length;
+  const defaultTotalErrors = rows.filter((row) => row.result === "Fail").length;
   const totalErrors = customTotalError ?? defaultTotalErrors;
 
   return {

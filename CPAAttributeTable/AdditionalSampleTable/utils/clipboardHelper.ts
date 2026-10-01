@@ -18,6 +18,21 @@ export function writeToClipboard(text: string): boolean {
   }
 }
 
+/**
+ * Escapes a cell value according to TSV / RFC 4180 rules:
+ * - If the value contains newline (\n or \r), tab (\t), or double quote ("),
+ *   internal double quotes are doubled (" -> "") and the entire value is enclosed in double quotes.
+ * - This prevents Excel from splitting multiline cell content into multiple rows or columns.
+ */
+export function escapeTSVCell(val: string | undefined | null): string {
+  if (val === undefined || val === null) return "";
+  const str = String(val);
+  if (str.includes('"') || str.includes("\t") || str.includes("\n") || str.includes("\r")) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
 // Serializes selected rows (or active row if no selection) into a TSV string.
 export function exportSelectionToTSV(
   rows: SampleRow[],
@@ -33,13 +48,13 @@ export function exportSelectionToTSV(
       if (selectedRowIds.has(row.id)) {
         const rowCells = [
           (idx + 1).toString(),
-          row.week,
-          ...attributes.map((a) => row.attributes[a.id] || ""),
-          row.evidence,
-          row.result,
-          row.comment || "", // <-- Thêm comment
+          escapeTSVCell(row.week),
+          ...attributes.map((a) => escapeTSVCell(row.attributes[a.id] || "")),
+          escapeTSVCell(row.evidence),
+          escapeTSVCell(row.result),
+          escapeTSVCell(row.comment || ""),
         ];
-        tsvContent += rowCells.join("\t") + "\n";
+        tsvContent += rowCells.join("\t") + "\r\n";
         copiedCount++;
       }
     });
@@ -49,13 +64,13 @@ export function exportSelectionToTSV(
       const row = rows[activeIdx];
       const rowCells = [
         (activeIdx + 1).toString(),
-        row.week,
-        ...attributes.map((a) => row.attributes[a.id] || ""),
-        row.evidence,
-        row.result,
-        row.comment || "", // <-- Thêm comment
+        escapeTSVCell(row.week),
+        ...attributes.map((a) => escapeTSVCell(row.attributes[a.id] || "")),
+        escapeTSVCell(row.evidence),
+        escapeTSVCell(row.result),
+        escapeTSVCell(row.comment || ""),
       ];
-      tsvContent += rowCells.join("\t") + "\n";
+      tsvContent += rowCells.join("\t") + "\r\n";
       copiedCount = 1;
     }
   }
@@ -67,30 +82,30 @@ export function exportSelectionToTSV(
 export function exportAllToTSV(
   rows: SampleRow[],
   attributes: Attribute[],
-  columnHeaders: { week: string; evidence: string; result: string; comment: string } // <-- Thêm comment
+  columnHeaders: { week: string; evidence: string; result: string; comment: string }
 ): string {
   let tsvContent = "";
 
   const headers = [
     "Order",
-    columnHeaders.week,
-    ...attributes.map((a) => a.name),
-    columnHeaders.evidence,
-    columnHeaders.result,
-    columnHeaders.comment, // <-- Thêm comment
+    escapeTSVCell(columnHeaders.week),
+    ...attributes.map((a) => escapeTSVCell(a.name)),
+    escapeTSVCell(columnHeaders.evidence),
+    escapeTSVCell(columnHeaders.result),
+    escapeTSVCell(columnHeaders.comment),
   ];
-  tsvContent += headers.join("\t") + "\n";
+  tsvContent += headers.join("\t") + "\r\n";
 
   rows.forEach((row, idx) => {
     const rowCells = [
       (idx + 1).toString(),
-      row.week,
-      ...attributes.map((a) => row.attributes[a.id] || ""),
-      row.evidence,
-      row.result,
-      row.comment || "", // <-- Thêm comment
+      escapeTSVCell(row.week),
+      ...attributes.map((a) => escapeTSVCell(row.attributes[a.id] || "")),
+      escapeTSVCell(row.evidence),
+      escapeTSVCell(row.result),
+      escapeTSVCell(row.comment || ""),
     ];
-    tsvContent += rowCells.join("\t") + "\n";
+    tsvContent += rowCells.join("\t") + "\r\n";
   });
 
   return tsvContent;
@@ -109,7 +124,6 @@ export function exportCellRangeToTSV(
   const minRow = Math.min(startRowIdx, endRowIdx);
   const maxRow = Math.max(startRowIdx, endRowIdx);
 
-  // <-- Thêm "comment" vào mảng allColumns
   const allColumns = ["order", "week", ...attributes.map((a) => a.id), "evidence", "result", "comment"];
   const startColIdx = allColumns.indexOf(start.colId);
   const endColIdx = allColumns.indexOf(end.colId);
@@ -124,43 +138,29 @@ export function exportCellRangeToTSV(
   const rowCount = maxRow - minRow + 1;
   const colCount = maxCol - minCol + 1;
 
+  const getCellRawValue = (rIdx: number, cId: string): string => {
+    const row = rows[rIdx];
+    if (cId === "order") return (rIdx + 1).toString();
+    if (cId === "week") return row.week || "";
+    if (cId === "evidence") return row.evidence || "";
+    if (cId === "result") return row.result || "";
+    if (cId === "comment") return row.comment || "";
+    return row.attributes[cId] || "";
+  };
+
   if (minRow === maxRow && minCol === maxCol) {
-    const row = rows[minRow];
     const colId = allColumns[minCol];
-    if (colId === "order") {
-      tsvContent = (minRow + 1).toString();
-    } else if (colId === "week") {
-      tsvContent = row.week;
-    } else if (colId === "evidence") {
-      tsvContent = row.evidence;
-    } else if (colId === "result") {
-      tsvContent = row.result;
-    } else if (colId === "comment") { // <-- Thêm logic lấy dữ liệu comment
-      tsvContent = row.comment || "";
-    } else {
-      tsvContent = row.attributes[colId] || "";
-    }
+    const rawVal = getCellRawValue(minRow, colId);
+    tsvContent = escapeTSVCell(rawVal);
   } else {
     for (let r = minRow; r <= maxRow; r++) {
-      const row = rows[r];
       const rowCells: string[] = [];
       for (let c = minCol; c <= maxCol; c++) {
         const colId = allColumns[c];
-        if (colId === "order") {
-          rowCells.push((r + 1).toString());
-        } else if (colId === "week") {
-          rowCells.push(row.week);
-        } else if (colId === "evidence") {
-          rowCells.push(row.evidence);
-        } else if (colId === "result") {
-          rowCells.push(row.result);
-        } else if (colId === "comment") { // <-- Thêm logic lấy dữ liệu comment
-          rowCells.push(row.comment || "");
-        } else {
-          rowCells.push(row.attributes[colId] || "");
-        }
+        const rawVal = getCellRawValue(r, colId);
+        rowCells.push(escapeTSVCell(rawVal));
       }
-      tsvContent += rowCells.join("\t") + "\n";
+      tsvContent += rowCells.join("\t") + "\r\n";
     }
   }
 
