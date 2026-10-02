@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { SampleRow, Attribute } from "./index";
 import { exportCellRangeToTSV, writeToClipboard } from "./utils/clipboardHelper";
+import { getActiveTableContainer } from "./activeTableRegistry";
 
 interface SelectionRange {
   start: { rowId: number; colId: string };
@@ -29,12 +30,14 @@ interface UseTableDragDropProps {
   >;
   isSelecting: boolean;
   setIsSelecting: React.Dispatch<React.SetStateAction<boolean>>;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function useTableDragDrop({
   rows,
   attributes,
-
+  activeRowId,
+  activeColumnId,
   setActiveRowId,
   setActiveColumnId,
 
@@ -44,6 +47,7 @@ export function useTableDragDrop({
   setSelectionRange,
   isSelecting,
   setIsSelecting,
+  containerRef,
 }: UseTableDragDropProps) {
   const dragTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mouseDownInfo = useRef<{
@@ -103,6 +107,12 @@ export function useTableDragDrop({
   const onCellMouseDown = useCallback(
     (e: React.MouseEvent, rowId: number, colId: string) => {
       if (e.button !== 0) return; // Only trigger for left clicks
+      if (e.detail >= 2) return; // Double-clicks should not trigger cell selection or steal focus
+
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
+        return;
+      }
 
       mouseDownInfo.current = { rowId, colId, event: e };
 
@@ -136,6 +146,37 @@ export function useTableDragDrop({
     [isSelecting, setSelectionRange],
   );
 
+  const allColumns = [
+    "order",
+    "week",
+    ...attributes.map(a => a.id),
+    "evidence",
+    "result",
+    "comment",
+  ];
+
+  const focusCell = useCallback((rowId: number, colId: string) => {
+    requestAnimationFrame(() => {
+      const cell = containerRef?.current
+        ? containerRef.current.querySelector<HTMLElement>(`td[data-row-id="${rowId}"][data-col-id="${colId}"]`)
+        : document.querySelector<HTMLElement>(`td[data-row-id="${rowId}"][data-col-id="${colId}"]`);
+      if (!cell) return;
+
+      // Never steal focus if an input or textarea inside this cell is currently focused
+      const active = document.activeElement;
+      if (
+        active &&
+        (active.tagName === "INPUT" || active.tagName === "TEXTAREA") &&
+        cell.contains(active)
+      ) {
+        return;
+      }
+
+      cell.tabIndex = -1;
+      cell.focus({ preventScroll: true });
+    });
+  }, [containerRef]);
+
   // Global mouseup and mousedown handlers to manage selection
   useEffect(() => {
     const handleGlobalMouseUp = () => {
@@ -155,6 +196,7 @@ export function useTableDragDrop({
           end: { rowId, colId },
         });
         onCellClick(rowId, colId);
+        focusCell(rowId, colId);
       }
 
       mouseDownInfo.current = null;
@@ -181,7 +223,7 @@ export function useTableDragDrop({
       window.removeEventListener("mouseup", handleGlobalMouseUp);
       window.removeEventListener("mousedown", handleGlobalMouseDown);
     };
-  }, [isSelecting, onCellClick, setIsSelecting, setSelectionRange]);
+  }, [isSelecting, onCellClick, setIsSelecting, setSelectionRange, focusCell]);
 
   const handleCopyRange = useCallback(() => {
     if (!selectionRange) return;
@@ -200,38 +242,40 @@ export function useTableDragDrop({
     }
   }, [selectionRange, rows, attributes, onShowToast]);
 
-  // Tab key down handler to move selection to the next cell
-  const allColumns = [
-    "order",
-    "week",
-    ...attributes.map(a => a.id),
-    "evidence",
-    "result",
-    "comment",
-  ];
-
-  const moveToNextCell = useCallback(() => {
-    if (!selectionRange) return;
+  const moveToNextCell = useCallback((reverse = false) => {
+    const currentEnd =
+      selectionRange?.end ??
+      (activeRowId !== null && activeColumnId !== null
+        ? { rowId: activeRowId, colId: activeColumnId }
+        : null);
+    if (!currentEnd) return;
 
     const rowIndex = rows.findIndex(
-      r => r.id === selectionRange.end.rowId
+      r => r.id === currentEnd.rowId
     );
 
     const colIndex = allColumns.indexOf(
-      selectionRange.end.colId
+      currentEnd.colId
     );
 
     if (rowIndex === -1 || colIndex === -1) return;
 
     let nextRow = rowIndex;
-    let nextCol = colIndex + 1;
+    let nextCol = colIndex + (reverse ? -1 : 1);
 
-    if (nextCol >= allColumns.length) {
-      nextCol = 0;
-      nextRow++;
+    if (reverse) {
+      if (nextCol < 0) {
+        nextCol = allColumns.length - 1;
+        nextRow--;
+      }
+      if (nextRow < 0) return;
+    } else {
+      if (nextCol >= allColumns.length) {
+        nextCol = 0;
+        nextRow++;
+      }
+      if (nextRow >= rows.length) return;
     }
-
-    if (nextRow >= rows.length) return;
 
     const rowId = rows[nextRow].id;
     const colId = allColumns[nextCol];
@@ -245,25 +289,219 @@ export function useTableDragDrop({
     setActiveColumnId(colId);
 
     onCellClick(rowId, colId);
+    focusCell(rowId, colId);
   }, [
     rows,
     allColumns,
     selectionRange,
+    activeRowId,
+    activeColumnId,
     setSelectionRange,
     setActiveRowId,
     setActiveColumnId,
     onCellClick,
+    focusCell,
   ]);
 
-  // Intercept the copy shortcut for Excel-like TSV formatting
+  const moveCellByArrow = useCallback((direction: "up" | "down" | "left" | "right") => {
+    const currentEnd =
+      selectionRange?.end ??
+      (activeRowId !== null && activeColumnId !== null
+        ? { rowId: activeRowId, colId: activeColumnId }
+        : null);
+    if (!currentEnd) return;
+
+    const rowIndex = rows.findIndex(r => r.id === currentEnd.rowId);
+    const colIndex = allColumns.indexOf(currentEnd.colId);
+    if (rowIndex === -1 || colIndex === -1) return;
+
+    let nextRow = rowIndex;
+    let nextCol = colIndex;
+
+    if (direction === "up") {
+      nextRow = Math.max(0, rowIndex - 1);
+    } else if (direction === "down") {
+      nextRow = Math.min(rows.length - 1, rowIndex + 1);
+    } else if (direction === "left") {
+      nextCol = Math.max(0, colIndex - 1);
+    } else if (direction === "right") {
+      nextCol = Math.min(allColumns.length - 1, colIndex + 1);
+    }
+
+    if (nextRow === rowIndex && nextCol === colIndex) return;
+
+    const rowId = rows[nextRow].id;
+    const colId = allColumns[nextCol];
+
+    setSelectionRange({
+      start: { rowId, colId },
+      end: { rowId, colId },
+    });
+
+    setActiveRowId(rowId);
+    setActiveColumnId(colId);
+
+    onCellClick(rowId, colId);
+    focusCell(rowId, colId);
+  }, [
+    rows,
+    allColumns,
+    selectionRange,
+    activeRowId,
+    activeColumnId,
+    setSelectionRange,
+    setActiveRowId,
+    setActiveColumnId,
+    onCellClick,
+    focusCell,
+  ]);
+
+  // Intercept keyboard navigation and copy shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Handle Tab key for moving to the next cell
-      if (e.key === "Tab") {
-        if (!selectionRange) return;
-        e.preventDefault();
-        moveToNextCell();
+      // Ignore keyboard navigation if this table is not active
+      if (containerRef?.current && getActiveTableContainer() !== containerRef.current) {
         return;
+      }
+
+      const activeEl = document.activeElement;
+
+      // Ignore if typing in an input outside the table (e.g. Header Total Samples/Errors, Dialog)
+      if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA")) {
+        const isTableCell = activeEl.closest("td[data-row-id]");
+        const isTableDropdown = activeEl.closest('[data-portal-dropdown="true"]');
+        if (!isTableCell && !isTableDropdown) {
+          return;
+        }
+      }
+
+      // Handle Tab key for moving to the next/previous cell
+      if (e.key === "Tab") {
+        const hasActiveCell = Boolean(selectionRange || (activeRowId !== null && activeColumnId !== null));
+        if (!hasActiveCell) return;
+        e.preventDefault();
+
+        // Close any open dropdown if present
+        if (document.querySelector('[data-portal-dropdown="true"]')) {
+          document.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+        }
+
+        moveToNextCell(e.shiftKey);
+        return;
+      }
+
+      // Handle Escape key (close dropdown or blur input back to cell selection)
+      if (e.key === "Escape") {
+        if (document.querySelector('[data-portal-dropdown="true"]')) {
+          e.preventDefault();
+          document.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+          return;
+        }
+
+        if (activeEl?.closest("td[data-row-id]")) {
+          const cell = activeEl.closest<HTMLElement>("td[data-row-id]");
+          if (cell) {
+            cell.tabIndex = -1;
+            cell.focus();
+          }
+          return;
+        }
+      }
+
+      // Handle Enter key (move down like Excel)
+      if (e.key === "Enter") {
+        const hasActiveCell = Boolean(selectionRange || (activeRowId !== null && activeColumnId !== null));
+        if (!hasActiveCell) return;
+
+        // If a dropdown is open, let dropdown handle it or ignore
+        if (document.querySelector('[data-portal-dropdown="true"]')) {
+          return;
+        }
+
+        // Ignore if typing in an input outside table
+        if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA")) {
+          const isTableCell = activeEl.closest("td[data-row-id]");
+          if (!isTableCell) {
+            return;
+          }
+          // If in textarea and Alt or Ctrl is pressed, allow newline insertion
+          if (e.altKey || e.ctrlKey) {
+            return;
+          }
+        }
+
+        e.preventDefault();
+        moveCellByArrow(e.shiftKey ? "up" : "down");
+        return;
+      }
+
+      // Handle Arrow keys
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        const hasActiveCell = Boolean(selectionRange || (activeRowId !== null && activeColumnId !== null));
+        if (!hasActiveCell) return;
+
+        // If a dropdown is open, close it immediately like Tab
+        if (document.querySelector('[data-portal-dropdown="true"]')) {
+          document.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+        }
+
+        const isTextInput =
+          activeEl instanceof HTMLInputElement || activeEl instanceof HTMLTextAreaElement;
+
+        const isDropdownSearch = Boolean(activeEl?.closest('[data-portal-dropdown="true"]'));
+
+        if (isTextInput && !isDropdownSearch) {
+          const { selectionStart, selectionEnd, value } = activeEl;
+          const isAllSelected = selectionStart === 0 && selectionEnd === value.length;
+
+          if (e.key === "ArrowLeft") {
+            // Only move to left cell if caret is at the beginning or all text is selected
+            if (selectionStart !== 0 || (selectionEnd !== 0 && !isAllSelected)) {
+              return;
+            }
+          } else if (e.key === "ArrowRight") {
+            // Only move to right cell if caret is at the end or all text is selected
+            if (selectionStart !== value.length && !isAllSelected) {
+              return;
+            }
+          } else if (activeEl instanceof HTMLTextAreaElement && value.includes("\n")) {
+            // In multi-line textarea, only move between cells if at the very first or last line
+            if (e.key === "ArrowUp") {
+              const firstNewline = value.indexOf("\n");
+              if (selectionStart !== null && selectionStart > firstNewline && !isAllSelected) {
+                return;
+              }
+            } else if (e.key === "ArrowDown") {
+              const lastNewline = value.lastIndexOf("\n");
+              if (selectionStart !== null && selectionStart <= lastNewline && !isAllSelected) {
+                return;
+              }
+            }
+          }
+        }
+
+        e.preventDefault();
+        if (e.key === "ArrowUp") moveCellByArrow("up");
+        else if (e.key === "ArrowDown") moveCellByArrow("down");
+        else if (e.key === "ArrowLeft") moveCellByArrow("left");
+        else if (e.key === "ArrowRight") moveCellByArrow("right");
+        return;
+      }
+
+      // If cell TD is focused and user types printable key, activate input
+      if (
+        activeEl?.tagName === "TD" &&
+        e.key.length === 1 &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey
+      ) {
+        const input = activeEl.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+          'input:not([type="checkbox"]), textarea'
+        );
+        if (input) {
+          input.focus();
+        }
       }
 
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "c") {
@@ -278,8 +516,6 @@ export function useTableDragDrop({
           return;
         }
 
-        // Find if cursor is currently focused on an editable text control
-        const activeEl = document.activeElement;
         const isTextInput =
           activeEl &&
           ((activeEl.tagName === "INPUT" &&
@@ -314,7 +550,15 @@ export function useTableDragDrop({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectionRange, handleCopyRange, moveToNextCell]);
+  }, [
+    selectionRange,
+    activeRowId,
+    activeColumnId,
+    handleCopyRange,
+    moveToNextCell,
+    moveCellByArrow,
+    containerRef,
+  ]);
 
   return {
     selectionRange,
@@ -323,5 +567,8 @@ export function useTableDragDrop({
     onCellMouseEnter,
     isCellSelected,
     handleCopyRange,
+    moveCellByArrow,
+    moveToNextCell,
+    focusCell,
   };
 }

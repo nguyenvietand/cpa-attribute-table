@@ -41,6 +41,8 @@ interface AdditionalSampleTableProps {
     comment: string;
   };
   initialEvidenceOptions?: string[];
+  initialTotalSample?: number | null;
+  initialTotalError?: number | null;
   onDataChange?: (snapshot: {
     rows: SampleRow[];
     attributes: Attribute[];
@@ -50,6 +52,8 @@ interface AdditionalSampleTableProps {
       result: string;
       comment: string;
     };
+    totalSample?: number;
+    totalError?: number;
   }) => void;
   onDeleteAction?: () => void;
   onTableNameChange?: (name: string) => void;
@@ -58,6 +62,7 @@ interface AdditionalSampleTableProps {
   onHeightChange?: (height: number) => void;
   maxHeight?: string | number;
   columnWidths?: ColumnWidths;
+  disabled?: boolean;
 }
 
 /* DEFAULT TABLE LAYOUT CONFIGURATION */
@@ -80,6 +85,8 @@ export default function AdditionalSampleTable({
   initialSelectedTableName,
   initialColumnHeaders,
   initialEvidenceOptions,
+  initialTotalSample,
+  initialTotalError,
   onDataChange,
   onDeleteAction,
   onTableNameChange,
@@ -88,6 +95,7 @@ export default function AdditionalSampleTable({
   onHeightChange,
   maxHeight,
   columnWidths,
+  disabled = false,
 }: AdditionalSampleTableProps) {
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -106,7 +114,9 @@ export default function AdditionalSampleTable({
     editingRow,
     setEditingRow,
     totalSamples,
+    setCustomTotalSample,
     totalErrors,
+    setCustomTotalError,
     snackbar,
     setSnackbar,
     activeRowId,
@@ -139,7 +149,10 @@ export default function AdditionalSampleTable({
     initialAttributes,
     initialColumnHeaders,
     initialEvidenceOptions,
+    initialTotalSample,
+    initialTotalError,
     containerRef,
+    disabled,
   });
 
   const {
@@ -159,6 +172,7 @@ export default function AdditionalSampleTable({
     activeRowId,
     selectionRange,
     hasRangeSelection: !!selectionRange,
+    containerRef,
   });
 
   const hasSelection = hasRowSelection || !!selectionRange;
@@ -168,6 +182,8 @@ export default function AdditionalSampleTable({
     onCellMouseEnter,
     isCellSelected,
     handleCopyRange,
+    moveCellByArrow,
+    moveToNextCell,
   } = useTableDragDrop({
     rows,
     attributes,
@@ -190,6 +206,7 @@ export default function AdditionalSampleTable({
     setSelectionRange,
     isSelecting,
     setIsSelecting,
+    containerRef,
   });
 
   const resolvedMaxHeight = maxHeight ?? DEFAULT_TABLE_CONFIG.maxHeight;
@@ -258,8 +275,10 @@ export default function AdditionalSampleTable({
       rows,
       attributes,
       columnHeaders,
+      totalSample: totalSamples,
+      totalError: totalErrors,
     });
-  }, [rows, attributes, columnHeaders, onDataChange]);
+  }, [rows, attributes, columnHeaders, totalSamples, totalErrors, onDataChange]);
 
   const isSingleCellSelection =
     !selectionRange ||
@@ -310,6 +329,9 @@ export default function AdditionalSampleTable({
             totalSamples={totalSamples}
             totalErrors={totalErrors}
             title={selectedTableName}
+            onTotalSampleChange={setCustomTotalSample}
+            onTotalErrorChange={setCustomTotalError}
+            disabled={disabled}
           />
         </AccordionSummary>
 
@@ -331,6 +353,7 @@ export default function AdditionalSampleTable({
             selectedTableName={selectedTableName}
             onSelectedTableNameChange={setSelectedTableName}
             onDeleteAction={onDeleteAction}
+            disabled={disabled}
           />
 
           <TableGrid
@@ -370,6 +393,9 @@ export default function AdditionalSampleTable({
             onCellMouseEnter={onCellMouseEnter}
             isCellSelected={isCellSelected}
             selectionRange={selectionRange}
+            onNavigateCell={moveCellByArrow}
+            onNavigateNext={moveToNextCell}
+            disabled={disabled}
           />
 
           <TableFooter />
@@ -385,7 +411,7 @@ export default function AdditionalSampleTable({
           onAdd={handleAddRow}
         />
       )} */}
-      {isAddRowOpen && (
+      {!disabled && isAddRowOpen && (
         <AddRowsDialog
           open={isAddRowOpen}
           onClose={() => setIsAddRowOpen(false)}
@@ -393,7 +419,7 @@ export default function AdditionalSampleTable({
         />
       )}
 
-      {isCopyPasteOpen && (
+      {!disabled && isCopyPasteOpen && (
         <CopyAndPasteDialog
           open={isCopyPasteOpen}
           onClose={() => setIsCopyPasteOpen(false)}
@@ -411,6 +437,7 @@ export default function AdditionalSampleTable({
           attributes={attributes}
           evidenceOptions={evidenceOptions}
           onSave={handleSaveRow}
+          readOnly={disabled}
         />
       )}
 

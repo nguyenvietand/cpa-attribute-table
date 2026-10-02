@@ -19,6 +19,7 @@ interface TableToolbarProps {
   selectedTableName: string;
   onSelectedTableNameChange: (value: string) => void;
   onDeleteAction?: () => void;
+  disabled?: boolean;
 }
 
 export default function TableToolbar({
@@ -32,38 +33,45 @@ export default function TableToolbar({
   selectedTableName,
   onSelectedTableNameChange,
   onDeleteAction,
+  disabled = false,
 }: TableToolbarProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-white border-b border-gray-200">
       {/* Left Controls */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Add Row Button */}
-        <button
-          type="button"
-          onClick={onAddRowClick}
-          className="flex items-center gap-1 border border-red-200 text-[#C00000] px-3 py-1.5 rounded text-xs font-semibold hover:bg-red-50/50 active:scale-[0.98] transition-all cursor-pointer shadow-2xs">
-          <AddIcon sx={{ fontSize: 14 }} />
-          <span>Add Row</span>
-        </button>
+        {!disabled && (
+          <button
+            type="button"
+            onClick={onAddRowClick}
+            className="flex items-center gap-1 border border-red-200 text-[#C00000] px-3 py-1.5 rounded text-xs font-semibold hover:bg-red-50/50 active:scale-[0.98] transition-all cursor-pointer shadow-2xs">
+            <AddIcon sx={{ fontSize: 14 }} />
+            <span>Add Row</span>
+          </button>
+        )}
 
         {/* Copy & Paste Button */}
-        <button
-          type="button"
-          onClick={onCopyPasteClick}
-          className="flex items-center gap-1 border border-red-200 text-[#C00000] px-3 py-1.5 rounded text-xs font-semibold hover:bg-red-50/50 active:scale-[0.98] transition-all cursor-pointer shadow-2xs">
-          <ContentCopyIcon sx={{ fontSize: 14 }} />
-          <span>Copy &amp; Paste</span>
-        </button>
+        {!disabled && (
+          <button
+            type="button"
+            onClick={onCopyPasteClick}
+            className="flex items-center gap-1 border border-red-200 text-[#C00000] px-3 py-1.5 rounded text-xs font-semibold hover:bg-red-50/50 active:scale-[0.98] transition-all cursor-pointer shadow-2xs">
+            <ContentCopyIcon sx={{ fontSize: 14 }} />
+            <span>Copy &amp; Paste</span>
+          </button>
+        )}
 
         {/* Paste from Excel Button */}
-        <button
-          type="button"
-          onClick={onPasteClick}
-          className="flex items-center gap-1 border border-gray-300 text-gray-700 px-3 py-1.5 rounded text-xs font-semibold hover:bg-gray-50 active:scale-[0.98] transition-all cursor-pointer shadow-2xs"
-          title="Paste rows from Excel clipboard">
-          <ContentPasteIcon sx={{ fontSize: 14 }} />
-          <span>Paste from Excel</span>
-        </button>
+        {!disabled && (
+          <button
+            type="button"
+            onClick={onPasteClick}
+            className="flex items-center gap-1 border border-gray-300 text-gray-700 px-3 py-1.5 rounded text-xs font-semibold hover:bg-gray-50 active:scale-[0.98] transition-all cursor-pointer shadow-2xs"
+            title="Paste rows from Excel clipboard">
+            <ContentPasteIcon sx={{ fontSize: 14 }} />
+            <span>Paste from Excel</span>
+          </button>
+        )}
 
         {/* Copy Selection Button */}
         <button
@@ -95,8 +103,13 @@ export default function TableToolbar({
         <div className="relative">
           <select
             value={selectedTableName}
+            disabled={disabled}
             onChange={(e) => onSelectedTableNameChange(e.target.value)}
-            className="appearance-none bg-white border border-gray-300 rounded pl-3 pr-8 py-1.5 text-xs font-semibold text-gray-700 focus:outline-hidden focus:border-gray-400 focus:ring-1 focus:ring-gray-400 cursor-pointer shadow-2xs"
+            className={`appearance-none border rounded pl-3 pr-8 py-1.5 text-xs font-semibold shadow-2xs ${
+              disabled
+                ? "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed"
+                : "bg-white border-gray-300 text-gray-700 focus:outline-hidden focus:border-gray-400 focus:ring-1 focus:ring-gray-400 cursor-pointer"
+            }`}
             style={{ width: 160 }}>
             {tableNames.length === 0 && <option value=""> </option>}
             {tableNames.map((name) => (
@@ -110,18 +123,20 @@ export default function TableToolbar({
           </div>
         </div>
         {/* Delete Icon Button */}
-        <button
-          type="button"
-          className="p-1.5 text-gray-455 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer flex items-center justify-center"
-          title="Delete Section"
-          onClick={() => {
-            if (onDeleteAction) {
-              onDeleteAction();
-            }
-          }}
-        >
-          <DeleteIcon sx={{ fontSize: 16 }} />
-        </button>
+        {!disabled && (
+          <button
+            type="button"
+            className="p-1.5 text-gray-455 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer flex items-center justify-center"
+            //title="Delete Section"
+            onClick={() => {
+              if (onDeleteAction) {
+                onDeleteAction();
+              }
+            }}
+          >
+            <DeleteIcon sx={{ fontSize: 16 }} />
+          </button>
+        )}
       </div>
     </div>
   );

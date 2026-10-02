@@ -4,7 +4,7 @@ import { SampleRow, Attribute } from "./mockData";
 import { arrayMove } from "@dnd-kit/sortable";
 import { splitEvidenceValue, joinEvidenceValues } from "./evidenceUtils";
 import { setActiveTableContainer, getActiveTableContainer, subscribeActiveTableContainer } from "./activeTableRegistry";
-import { processPaste } from "./utils/pasteParser";
+import { processPaste, parseTSV } from "./utils/pasteParser";
 
 export interface SelectionRange {
   start: { rowId: number; colId: string };
@@ -28,7 +28,10 @@ interface UseTableDataProps {
     comment: string;
   };
   initialEvidenceOptions?: string[];
+  initialTotalSample?: number | null;
+  initialTotalError?: number | null;
   containerRef?: React.RefObject<HTMLDivElement | null>;
+  disabled?: boolean;
 }
 
 export function useTableData({
@@ -36,7 +39,10 @@ export function useTableData({
   initialAttributes = [],
   initialColumnHeaders = DEFAULT_COLUMN_HEADERS,
   initialEvidenceOptions = [],
+  initialTotalSample,
+  initialTotalError,
   containerRef,
+  disabled = false,
 }: UseTableDataProps) {
 
   const getNextRowId = useCallback((sourceRows: SampleRow[]): number => {
@@ -62,6 +68,12 @@ export function useTableData({
 
   // Table rows editable state
   const [rows, setRows] = useState<SampleRow[]>(initialRows);
+  const [customTotalSample, setCustomTotalSample] = useState<number | null>(
+    initialTotalSample ?? null,
+  );
+  const [customTotalError, setCustomTotalError] = useState<number | null>(
+    initialTotalError ?? null,
+  );
 
   // Active attributes state
   const [attributes, setAttributes] = useState<Attribute[]>(initialAttributes);
@@ -103,6 +115,7 @@ export function useTableData({
     attributeId: string,
     value: string,
   ) => {
+    if (disabled) return;
     setRows(
       rows.map((row) =>
         row.id === id ?
@@ -119,27 +132,32 @@ export function useTableData({
   };
 
   const handleResultChange = (id: number, value: "Pass" | "Fail" | "") => {
+    if (disabled) return;
     setRows(
       rows.map((row) => (row.id === id ? { ...row, result: value } : row)),
     );
   };
 
   const handleEvidenceChange = (id: number, value: string) => {
+    if (disabled) return;
     setRows(
       rows.map((row) => (row.id === id ? { ...row, evidence: value } : row)),
     );
   };
 
   const handleWeekChange = (id: number, value: string) => {
+    if (disabled) return;
     setRows(rows.map((row) => (row.id === id ? { ...row, week: value } : row)));
   };
 
   const handleCommentChange = (id: number, value: string) => {
+    if (disabled) return;
     setRows(rows.map((row) => (row.id === id ? { ...row, comment: value } : row)));
   };
 
   // Add row handler
   const handleAddRow = (newRowData: Omit<SampleRow, "id">) => {
+    if (disabled) return;
     setRows((prevRows) => [
       ...prevRows,
       {
@@ -151,6 +169,7 @@ export function useTableData({
 
   // Add multiple rows handler
   const handleImportRows = useCallback((newRowsData: Omit<SampleRow, "id">[]) => {
+    if (disabled) return;
     setRows((prevRows) => {
       let nextId = getNextRowId(prevRows);
       const newRows: SampleRow[] = newRowsData.map((row) => ({
@@ -159,13 +178,14 @@ export function useTableData({
       }));
       return [...prevRows, ...newRows];
     });
-  }, [getNextRowId]);
+  }, [getNextRowId, disabled]);
 
   // Override rows starting from a specific row ID
   const handleOverrideRows = useCallback((
     startRowId: number,
     newRowsData: Omit<SampleRow, "id">[],
   ) => {
+    if (disabled) return;
     setRows((prevRows) => {
       const startIndex = prevRows.findIndex((row) => row.id === startRowId);
       if (startIndex === -1) return prevRows;
@@ -194,12 +214,13 @@ export function useTableData({
 
       return updatedRows;
     });
-  }, [getNextRowId]);
+  }, [getNextRowId, disabled]);
 
   // Direct clipboard paste handler
   const handleDirectPaste = useCallback(
     (text: string) => {
-      const result = processPaste(text, rows, attributes, activeRowId, activeColumnId);
+      if (disabled) return;
+      const result = processPaste(text, rows, attributes, activeRowId, activeColumnId, evidenceOptions);
 
       if (result.updatedRows) {
         setRows(result.updatedRows);
@@ -219,11 +240,12 @@ export function useTableData({
         });
       }
     },
-    [rows, attributes, activeRowId, activeColumnId, handleImportRows, handleOverrideRows],
+    [rows, attributes, activeRowId, activeColumnId, evidenceOptions, handleImportRows, handleOverrideRows, disabled],
   );
 
   // Toolbar Paste button handler
   const handleToolbarPasteClick = async () => {
+    if (disabled) return;
     try {
       const text = await navigator.clipboard.readText();
       handleDirectPaste(text);
@@ -250,6 +272,9 @@ export function useTableData({
     return () => {
       container.removeEventListener("mousedown", markActive);
       container.removeEventListener("focusin", markActive);
+      if (getActiveTableContainer() === container) {
+        setActiveTableContainer(null);
+      }
     };
   }, [containerRef]);
 
@@ -272,6 +297,7 @@ export function useTableData({
   // Keyboard shortcut listener for Ctrl + V
   useEffect(() => {
     const handlePasteEvent = (e: ClipboardEvent) => {
+      if (disabled) return;
       if (containerRef?.current && getActiveTableContainer() !== containerRef.current) {
         return;
       }
@@ -289,13 +315,29 @@ export function useTableData({
       const text = e.clipboardData?.getData("text/plain") || "";
       if (!text) return;
 
-      const hasTab = text.includes("\t");
-      const hasNewline = text.trim().includes("\n") || text.trim().includes("\r");
-      const isMultiCell = hasTab || hasNewline;
-
-      const isMultiCellRange = selectionRange && (selectionRange.start.rowId !== selectionRange.end.rowId || selectionRange.start.colId !== selectionRange.end.colId);
-
-      if (isTextInput && !isMultiCell && !isMultiCellRange) {
+      if (isTextInput) {
+        // When user is typing inside an input or textarea (e.g. ExcelCellEditor, dialogs),
+        // let the input handle the paste naturally.
+        // If the clipboard content is an Excel-quoted single cell (e.g. "Line 1\r\nLine 2"\r\n),
+        // cleanly unwrap the outer quotes and carriage returns before inserting.
+        const grid = parseTSV(text);
+        if (grid.length === 1 && grid[0].length === 1) {
+          const cleanVal = grid[0][0];
+          if (text.startsWith('"') && (text.endsWith('"\r\n') || text.endsWith('"\n') || text.endsWith('"'))) {
+            e.preventDefault();
+            const input = activeEl as HTMLInputElement | HTMLTextAreaElement;
+            if (typeof input.selectionStart === "number" && typeof input.selectionEnd === "number") {
+              const start = input.selectionStart;
+              const end = input.selectionEnd;
+              const before = input.value.substring(0, start);
+              const after = input.value.substring(end);
+              input.value = before + cleanVal + after;
+              input.selectionStart = input.selectionEnd = start + cleanVal.length;
+              input.dispatchEvent(new Event("input", { bubbles: true }));
+              input.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          }
+        }
         return;
       }
 
@@ -310,10 +352,11 @@ export function useTableData({
     return () => {
       window.removeEventListener("paste", handlePasteEvent);
     };
-  }, [handleDirectPaste, selectionRange, containerRef]);
+  }, [handleDirectPaste, selectionRange, containerRef, disabled]);
 
   // Add default row handler
   const handleAddDefaultRow = () => {
+    if (disabled) return;
     const defaultAttributes: Record<string, string> = {};
     attributes.forEach((attr) => {
       defaultAttributes[attr.id] = "";
@@ -329,6 +372,7 @@ export function useTableData({
 
   // Add multiple default rows handler
   const handleAddDefaultRows = (quantity: number) => {
+    if (disabled) return;
     const defaultAttributes: Record<string, string> = {};
     attributes.forEach((attr) => {
       defaultAttributes[attr.id] = "";
@@ -347,6 +391,7 @@ export function useTableData({
 
   // Save edited row handler
   const handleSaveRow = (updatedRow: SampleRow) => {
+    if (disabled) return;
     setRows(
       rows.map((row) => (row.id === updatedRow.id ? updatedRow : row)),
     );
@@ -355,11 +400,13 @@ export function useTableData({
 
   // Delete row handler
   const handleDeleteRow = (id: number) => {
+    if (disabled) return;
     setRows(rows.filter((row) => row.id !== id));
   };
 
   // Delete attribute handler
   const handleDeleteAttribute = (id: string) => {
+    if (disabled) return;
     const filteredAttributes = attributes.filter((attr) => attr.id !== id);
     const reindexedAttributes = normalizeAttributeLayout(filteredAttributes);
     setAttributes(reindexedAttributes);
@@ -377,6 +424,7 @@ export function useTableData({
 
   // Add attribute directly
   const handleAddAttributeDirect = (targetIndex?: number) => {
+    if (disabled) return;
     const newId = `attr_${Date.now()}`;
     const insertIdx = targetIndex !== undefined ? targetIndex : attributes.length;
     const newAttr: Attribute = {
@@ -406,6 +454,7 @@ export function useTableData({
 
   // Update attribute inline
   const handleUpdateAttribute = (id: string, updatedFields: Partial<Attribute>) => {
+    if (disabled) return;
     setAttributes(
       attributes.map((attr) =>
         attr.id === id ? { ...attr, ...updatedFields } : attr,
@@ -415,6 +464,7 @@ export function useTableData({
 
   // Reorder attributes list
   const handleReorderAttributes = (activeId: string, overId: string) => {
+    if (disabled) return;
     setAttributes((prev) => {
       const oldIndex = prev.findIndex((attr) => attr.id === activeId);
       const newIndex = prev.findIndex((attr) => attr.id === overId);
@@ -431,6 +481,7 @@ export function useTableData({
     key: "week" | "evidence" | "result" | "comment",
     value: string,
   ) => {
+    if (disabled) return;
     setColumnHeaders((prev) => ({
       ...prev,
       [key]: value,
@@ -439,6 +490,7 @@ export function useTableData({
 
   // Reset handler to restore state to mock defaults
   const handleReset = (callback?: () => void) => {
+    if (disabled) return;
     setRows(initialRows);
     setAttributes(normalizeAttributeLayout(initialAttributes));
     setColumnHeaders(initialColumnHeaders);
@@ -454,6 +506,7 @@ export function useTableData({
     columnIds: string[],
     pasteContent: string,
   ) => {
+    if (disabled) return;
     if (columnIds.length === 0) {
       setSnackbar({
         open: true,
@@ -526,19 +579,21 @@ export function useTableData({
     setRows(initialRows);
     setAttributes(normalizeAttributeLayout(initialAttributes));
     setColumnHeaders(initialColumnHeaders);
-  }, [initialRows, initialAttributes, initialColumnHeaders, normalizeAttributeLayout]);
+    if (initialTotalSample !== undefined && initialTotalSample !== null) {
+      setCustomTotalSample(initialTotalSample);
+    }
+    if (initialTotalError !== undefined && initialTotalError !== null) {
+      setCustomTotalError(initialTotalError);
+    }
+  }, [initialRows, initialAttributes, initialColumnHeaders, initialTotalSample, initialTotalError, normalizeAttributeLayout]);
 
   useEffect(() => {
     setEvidenceOptions(initialEvidenceOptions);
   }, [initialEvidenceOptions]);
 
-  const totalSamples = rows.length;
-  const totalErrors = rows.filter((row) => {
-    const hasFailAttr = attributes.some(
-      (attr) => row.attributes[attr.id] === "Fail",
-    );
-    return hasFailAttr || row.result === "Fail";
-  }).length;
+  const totalSamples = customTotalSample ?? rows.length;
+  const defaultTotalErrors = rows.filter((row) => row.result === "Fail").length;
+  const totalErrors = customTotalError ?? defaultTotalErrors;
 
   return {
     isExpanded,
@@ -555,7 +610,9 @@ export function useTableData({
     editingRow,
     setEditingRow,
     totalSamples,
+    setCustomTotalSample,
     totalErrors,
+    setCustomTotalError,
     snackbar,
     setSnackbar,
     activeRowId,

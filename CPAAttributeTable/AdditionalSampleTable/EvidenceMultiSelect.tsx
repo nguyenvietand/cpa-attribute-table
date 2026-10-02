@@ -13,6 +13,7 @@ interface EvidenceMultiSelectProps {
   label?: string;
   open?: boolean;
   onOpenChange?: (nextOpen: boolean) => void;
+  disabled?: boolean;
 }
 
 export default function EvidenceMultiSelect({
@@ -23,6 +24,7 @@ export default function EvidenceMultiSelect({
   label,
   open,
   onOpenChange,
+  disabled = false,
 }: EvidenceMultiSelectProps) {
   const [internalOpen, setInternalOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -50,10 +52,11 @@ export default function EvidenceMultiSelect({
   }, [isOpen]);
 
   const filteredOptions = React.useMemo(() => {
-    return options.filter((option) =>
+    const baseOptions = disabled ? selectedValues : options;
+    return baseOptions.filter((option) =>
       option.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [options, searchQuery]);
+  }, [disabled, selectedValues, options, searchQuery]);
 
   React.useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -97,6 +100,7 @@ export default function EvidenceMultiSelect({
   }, [isOpen, updateDropdownPosition]);
 
   const toggleValue = (nextValue: string) => {
+    if (disabled) return;
     const nextSelected = selectedValues.includes(nextValue)
       ? selectedValues.filter((item) => item !== nextValue)
       : [...selectedValues, nextValue];
@@ -110,6 +114,7 @@ export default function EvidenceMultiSelect({
       {label && <div className="text-[11px] text-gray-500 mb-1">{label}</div>}
       <button
         type="button"
+        title={disabled ? "Click to view selected files" : undefined}
         onClick={(event) => {
           event.stopPropagation();
           setOpenState(!isOpen);
@@ -124,8 +129,9 @@ export default function EvidenceMultiSelect({
       {isOpen && createPortal(
         <div
           ref={dropdownRef}
+          data-portal-dropdown="true"
           style={dropdownStyle}
-          className="border border-gray-300 bg-white overflow-hidden flex flex-col">
+          className="border border-gray-300 bg-white overflow-hidden flex flex-col shadow-lg">
 
           <div
             className="p-1.5 border-b border-gray-100 bg-gray-50"
@@ -133,7 +139,7 @@ export default function EvidenceMultiSelect({
           >
             <input
               type="text"
-              placeholder="Search..."
+              placeholder={disabled ? "Filter selected files..." : "Search..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white text-gray-700"
@@ -142,26 +148,44 @@ export default function EvidenceMultiSelect({
 
           <div className="max-h-44 overflow-y-auto py-1">
             {filteredOptions.map((option) => (
-              <button
-                key={option}
-                type="button"
-                onMouseDown={(event) => event.stopPropagation()}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  toggleValue(option);
-                }}
-                className={`w-full text-left px-3 py-1.5 text-xs break-all cursor-pointer ${selectedValues.includes(option)
-                  ? "bg-gray-200 text-gray-900 font-semibold"
-                  : "text-gray-700 hover:bg-gray-50"
-                  }`}>
-                {selectedValues.includes(option) && <span className="mr-1">✓   </span>}
-                {option}
-              </button>
+              disabled ? (
+                <div
+                  key={option}
+                  onMouseDown={(event) => event.stopPropagation()}
+                  className="w-full text-left px-3 py-1.5 text-xs break-all cursor-default bg-gray-50 text-gray-800 font-medium flex items-center">
+                  <span className="mr-1.5 text-emerald-600 font-bold">✓</span>
+                  <span>{option}</span>
+                </div>
+              ) : (
+                <button
+                  key={option}
+                  type="button"
+                  onMouseDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleValue(option);
+                  }}
+                  className={`w-full text-left px-3 py-1.5 text-xs break-all cursor-pointer flex items-center ${selectedValues.includes(option)
+                    ? "bg-gray-100 text-gray-900 font-semibold"
+                    : "text-gray-700 hover:bg-gray-50"
+                    }`}>
+                  {selectedValues.includes(option) && (
+                    <span className="mr-1.5 text-emerald-600 font-bold shrink-0">✓</span>
+                  )}
+                  <span>{option}</span>
+                </button>
+              )
             ))}
 
             {filteredOptions.length === 0 && (
               <div className="px-3 py-3 text-xs text-gray-400 text-center italic">
-                {options.length === 0 ? "No files available" : "No matches found"}
+                {disabled
+                  ? selectedValues.length === 0
+                    ? "No files attached"
+                    : "No matches found"
+                  : options.length === 0
+                  ? "No files available"
+                  : "No matches found"}
               </div>
             )}
           </div>

@@ -6,6 +6,7 @@ import {
   exportAllToTSV,
 } from "./utils/clipboardHelper";
 import { SelectionRange } from "./useTableData";
+import { getActiveTableContainer, subscribeActiveTableContainer } from "./activeTableRegistry";
 
 interface UseTableSelectionProps {
   rows: SampleRow[];
@@ -20,6 +21,7 @@ interface UseTableSelectionProps {
   activeRowId?: number | null;
   hasRangeSelection?: boolean;
   selectionRange?: SelectionRange | null;
+  containerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function useTableSelection({
@@ -30,6 +32,7 @@ export function useTableSelection({
   activeRowId = null,
   hasRangeSelection = false,
   selectionRange = null,
+  containerRef,
 }: UseTableSelectionProps) {
   const [selectedRowIds, setSelectedRowIds] = useState<Set<number>>(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
@@ -97,8 +100,28 @@ export function useTableSelection({
     setSelectionMode(false);
   };
 
+  // Clear selection when another table becomes active
+  useEffect(() => {
+    const unsubscribe = subscribeActiveTableContainer((activeEl) => {
+      const container = containerRef?.current;
+      if (!container) return;
+
+      if (activeEl !== container) {
+        setSelectedRowIds(new Set());
+        setSelectionMode(false);
+      }
+    });
+
+    return unsubscribe;
+  }, [containerRef]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore row copy shortcut if this table is not active
+      if (containerRef?.current && getActiveTableContainer() !== containerRef.current) {
+        return;
+      }
+
       const shouldHandleRowCopy =
         !hasRangeSelection ||
         (
@@ -139,7 +162,7 @@ export function useTableSelection({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedRowIds, activeRowId, handleCopySelectionDirect, hasRangeSelection]);
+  }, [selectedRowIds, activeRowId, handleCopySelectionDirect, hasRangeSelection, selectionRange, containerRef]);
 
   return {
     selectedRowIds,

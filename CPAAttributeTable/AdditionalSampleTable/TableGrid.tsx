@@ -4,9 +4,13 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import { mergeEvidenceOptions, splitEvidenceValue, joinEvidenceValues } from "./evidenceUtils";
 import EvidenceMultiSelect from "./EvidenceMultiSelect";
 import ResultSingleSelect from "./ResultSingleSelect";
+import CellTextDialog from "./CellTextDialog";
+import ExcelCellEditor from "./ExcelCellEditor";
 import {
   DndContext,
   closestCenter,
@@ -66,6 +70,9 @@ interface TableGridProps {
     start: { rowId: number; colId: string };
     end: { rowId: number; colId: string };
   } | null;
+  onNavigateCell?: (direction: "up" | "down" | "left" | "right") => void;
+  onNavigateNext?: (reverse?: boolean) => void;
+  disabled?: boolean;
 }
 
 interface SortableHeaderCellProps {
@@ -79,6 +86,7 @@ interface SortableHeaderCellProps {
   handleMouseDown: (e: React.MouseEvent, columnId: string) => void;
   hoveredCol: string | null;
   setHoveredCol: (id: string | null) => void;
+  disabled?: boolean;
 }
 
 function SortableHeaderCell({
@@ -92,6 +100,7 @@ function SortableHeaderCell({
   handleMouseDown,
   hoveredCol,
   setHoveredCol,
+  disabled = false,
 }: SortableHeaderCellProps) {
   const {
     attributes: dndAttributes,
@@ -100,7 +109,7 @@ function SortableHeaderCell({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: attr.id });
+  } = useSortable({ id: attr.id, disabled });
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -116,30 +125,34 @@ function SortableHeaderCell({
       style={style}
       onMouseEnter={() => setHoveredCol(attr.id)}
       onMouseLeave={() => setHoveredCol(null)}
-      className={`group sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle ${
-        isDragging ? "bg-blue-50/50" : ""
+      className={`group sticky top-0 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle ${
+        isDragging ? "bg-blue-50/50 z-40" : "z-30"
       }`}
     >
       <div className="relative flex flex-col w-full">
         <div className="flex items-center justify-between w-full pr-4">
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <button
-              type="button"
-              onClick={() => onDeleteAttribute(attr.id)}
-              className="text-[#C00000] hover:text-[#900000] cursor-pointer flex items-center justify-center shrink-0"
-              title={`Delete ${attr.name}`}>
-              <DeleteIcon sx={{ fontSize: 14 }} />
-            </button>
+            {!disabled && (
+              <button
+                type="button"
+                onClick={() => onDeleteAttribute(attr.id)}
+                className="text-[#C00000] hover:text-[#900000] cursor-pointer flex items-center justify-center shrink-0"
+                title={`Delete ${attr.name}`}>
+                <DeleteIcon sx={{ fontSize: 14 }} />
+              </button>
+            )}
 
             {/* Drag Handle */}
-            <div
-              {...listeners}
-              {...dndAttributes}
-              className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex items-center justify-center shrink-0"
-              title="Drag to reorder column"
-            >
-              <DragIndicatorIcon sx={{ fontSize: 16 }} />
-            </div>
+            {!disabled && (
+              <div
+                {...listeners}
+                {...dndAttributes}
+                className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex items-center justify-center shrink-0"
+                title="Drag to reorder column"
+              >
+                <DragIndicatorIcon sx={{ fontSize: 16 }} />
+              </div>
+            )}
 
             <span className="text-xs font-bold text-gray-800 px-1 py-0.5 normal-case select-none truncate">
               {attr.name}
@@ -148,31 +161,39 @@ function SortableHeaderCell({
         </div>
         <textarea
           value={attr.description || attr.columnName || ""}
-          onChange={(e) =>
+          readOnly={disabled}
+          onChange={(e) => {
+            if (disabled) return;
             onUpdateAttribute(attr.id, {
               description: e.target.value,
               columnName: e.target.value,
-            })
-          }
+            });
+          }}
           aria-label={`Edit ${attr.name} description`}
-          placeholder="Enter description..."
+          placeholder={disabled ? "" : "Enter description..."}
           rows={3}
-          className="text-[11px] text-gray-500 font-normal normal-case bg-transparent border border-transparent hover:border-gray-300 focus:border-gray-400 focus:bg-white outline-hidden rounded px-1.5 py-1 w-full mt-1.5 leading-snug resize-none overflow-y-auto"
+          className={`text-[11px] font-normal normal-case outline-hidden rounded px-1.5 py-1 w-full mt-1.5 leading-snug resize-none overflow-y-auto ${
+            disabled
+              ? "text-gray-600 bg-transparent border border-transparent select-text cursor-default"
+              : "text-gray-500 bg-transparent border border-transparent hover:border-gray-300 focus:border-gray-400 focus:bg-white"
+          }`}
         />
 
-        <button
-          type="button"
-          onClick={() => onAddAttribute(idx + 1)}
-          onMouseEnter={() => setHoveredCol(attr.id)}
-          onMouseLeave={() => setHoveredCol(null)}
-          style={{
-            opacity: hoveredCol === attr.id ? 1 : 0,
-            transition: "opacity 150ms ease-in-out",
-          }}
-          className="z-30 absolute -right-3 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 w-5 h-5 rounded-full cursor-pointer flex items-center justify-center border border-emerald-250 bg-white shadow-xs"
-          title="Add Attribute Column">
-          <AddIcon sx={{ fontSize: 12 }} />
-        </button>
+        {!disabled && (
+          <button
+            type="button"
+            onClick={() => onAddAttribute(idx + 1)}
+            onMouseEnter={() => setHoveredCol(attr.id)}
+            onMouseLeave={() => setHoveredCol(null)}
+            style={{
+              opacity: hoveredCol === attr.id ? 1 : 0,
+              transition: "opacity 150ms ease-in-out",
+            }}
+            className="z-30 absolute -right-3 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 w-5 h-5 rounded-full cursor-pointer flex items-center justify-center border border-emerald-250 bg-white shadow-xs"
+            title="Add Attribute Column">
+            <AddIcon sx={{ fontSize: 12 }} />
+          </button>
+        )}
       </div>
       <div
         onMouseDown={(e) => handleMouseDown(e, attr.id)}
@@ -216,11 +237,34 @@ export default function TableGrid({
   onCellMouseEnter,
   isCellSelected,
   selectionRange,
+  onNavigateCell,
+  onNavigateNext,
+  disabled = false,
 }: TableGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const prevRowsLength = useRef(rows.length);
   const [hoveredCol, setHoveredCol] = useState<string | null>(null);
   const [openEvidenceRowId, setOpenEvidenceRowId] = useState<number | null>(null);
+  const [cellModalState, setCellModalState] = useState<{
+    open: boolean;
+    rowId: number;
+    colId: string;
+    title: string;
+    value: string;
+  } | null>(null);
+
+  const handleSaveCellModal = (newValue: string) => {
+    if (!cellModalState) return;
+    const { rowId, colId } = cellModalState;
+    if (colId === "week") {
+      onWeekChange(rowId, newValue);
+    } else if (colId === "comment") {
+      onCommentChange(rowId, newValue);
+    } else {
+      onAttrChange(rowId, colId, newValue);
+    }
+    setCellModalState(null);
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -339,7 +383,7 @@ export default function TableGrid({
         ref={containerRef}
         className="overflow-y-auto overflow-x-auto w-full outline-none"
         style={{ maxHeight: formatWidth(maxHeight) }}>
-        <div className="min-w-full w-max pr-3">
+        <div className="min-w-full w-max pr-3 pb-24">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -348,33 +392,35 @@ export default function TableGrid({
             <table
               className="min-w-full text-left border-collapse"
               style={{ width: "max-content" }}>
-              <thead>
+              <thead className="bg-gray-50 sticky top-0 z-30">
                 <tr>
                   <th
                     style={{
                       width: formatWidth(columnWidths?.order),
                       minWidth: formatWidth(columnWidths?.order),
                     }}
-                    className="sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 align-middle resize-">
+                    className="sticky top-0 z-30 bg-gray-50 border-b border-r border-gray-200 align-middle resize-">
                     <div className="flex items-center gap-1.5 justify-center">
-                      <button
-                        type="button"
-                        className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAddRow();
-                          setTimeout(() => {
-                            if (containerRef.current) {
-                              containerRef.current.scrollTo({
-                                top: containerRef.current.scrollHeight,
-                                behavior: "smooth",
-                              });
-                            }
-                          }, 50);
-                        }}
-                      >
-                        <AddIcon sx={{ fontSize: 16 }} className="text-[#C00000] hover:text-green-800" />
-                      </button>
+                      {!disabled && (
+                        <button
+                          type="button"
+                          className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAddRow();
+                            setTimeout(() => {
+                              if (containerRef.current) {
+                                containerRef.current.scrollTo({
+                                  top: containerRef.current.scrollHeight,
+                                  behavior: "smooth",
+                                });
+                              }
+                            }, 50);
+                          }}
+                        >
+                          <AddIcon sx={{ fontSize: 16 }} className="text-[#C00000] hover:text-green-800" />
+                        </button>
+                      )}
                       <input
                         type="checkbox"
                         checked={
@@ -399,31 +445,39 @@ export default function TableGrid({
                     }}
                     onMouseEnter={() => setHoveredCol("week")}
                     onMouseLeave={() => setHoveredCol(null)}
-                    className="group sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
+                    className="group sticky top-0 z-30 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
                     <div className="relative flex items-center justify-between w-full">
                       <div className="flex items-center gap-1.5 flex-1 ">
                         <input
                           type="text"
                           value={columnHeaders.week}
-                          onChange={(e) =>
-                            onUpdateColumnHeader("week", e.target.value)
-                          }
-                          className="text-xs font-bold text-gray-800 bg-transparent border-b border-transparent hover:border-gray-300 focus:bg-white focus:ring-1  outline-hidden rounded px-1 py-0.5 w-full normal-case tracking-wider"
+                          readOnly={disabled}
+                          onChange={(e) => {
+                            if (disabled) return;
+                            onUpdateColumnHeader("week", e.target.value);
+                          }}
+                          className={`text-xs font-bold text-gray-800 bg-transparent border-b border-transparent rounded px-1 py-0.5 w-full normal-case tracking-wider ${
+                            disabled
+                              ? "cursor-default"
+                              : "hover:border-gray-300 focus:bg-white focus:ring-1 outline-hidden"
+                          }`}
                         />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => onAddAttribute(0)}
-                        onMouseEnter={() => setHoveredCol("week")}
-                        onMouseLeave={() => setHoveredCol(null)}
-                        style={{
-                          opacity: hoveredCol === "week" ? 1 : 0,
-                          transition: "opacity 150ms ease-in-out",
-                        }}
-                        className="z-30 absolute -right-3 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 w-5 h-5 rounded-full cursor-pointer flex items-center justify-center border border-emerald-250 bg-white shadow-xs"
-                        title="Add Attribute Column">
-                        <AddIcon sx={{ fontSize: 12 }} />
-                      </button>
+                      {!disabled && (
+                        <button
+                          type="button"
+                          onClick={() => onAddAttribute(0)}
+                          onMouseEnter={() => setHoveredCol("week")}
+                          onMouseLeave={() => setHoveredCol(null)}
+                          style={{
+                            opacity: hoveredCol === "week" ? 1 : 0,
+                            transition: "opacity 150ms ease-in-out",
+                          }}
+                          className="z-30 absolute -right-3 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 w-5 h-5 rounded-full cursor-pointer flex items-center justify-center border border-emerald-250 bg-white shadow-xs"
+                          title="Add Attribute Column">
+                          <AddIcon sx={{ fontSize: 12 }} />
+                        </button>
+                      )}
                     </div>
                     <div
                       onMouseDown={(e) => handleMouseDown(e, "week")}
@@ -448,6 +502,7 @@ export default function TableGrid({
                         handleMouseDown={handleMouseDown}
                         hoveredCol={hoveredCol}
                         setHoveredCol={setHoveredCol}
+                        disabled={disabled}
                       />
                     ))}
                   </SortableContext>
@@ -458,7 +513,7 @@ export default function TableGrid({
                       width: formatWidth(columnWidths?.evidence),
                       minWidth: formatWidth(columnWidths?.evidence),
                     }}
-                    className="sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
+                    className="sticky top-0 z-30 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
                     <div className="px-1 py-0.5 text-gray-800 leading-normal select-none">
                       Supporting Evidence per Attribute
                     </div>
@@ -474,7 +529,7 @@ export default function TableGrid({
                       width: formatWidth(columnWidths?.result),
                       minWidth: formatWidth(columnWidths?.result),
                     }}
-                    className="sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
+                    className="sticky top-0 z-30 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
                     <div className="px-1 py-0.5 text-gray-800 leading-normal select-none">
                       Control Sample Assessment Result (Pass/Fail)
                     </div>
@@ -489,7 +544,7 @@ export default function TableGrid({
                       width: formatWidth(columnWidths?.comment),
                       minWidth: formatWidth(columnWidths?.comment),
                     }}
-                    className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
+                    className="sticky top-0 z-30 bg-gray-50 border-b border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
                     <div className="px-1 py-0.5 text-gray-800 leading-normal select-none">
                       {columnHeaders.comment}
                     </div>
@@ -513,12 +568,12 @@ export default function TableGrid({
 
                     let cellClass = "";
                     if (isActiveCell) {
-                      cellClass = "ring-2! ring-blue-600! ring-inset! z-20! bg-blue-50/70!";
+                      cellClass = "ring-2! ring-blue-600! ring-inset! z-[3]! bg-blue-50/70!";
                     } else if (isRangeSelected) {
-                      cellClass = "ring-1! ring-blue-300/60! ring-inset! z-10! bg-blue-500/20!";
+                      cellClass = "ring-1! ring-blue-300/60! ring-inset! z-[2]! bg-blue-500/20!";
                     }
 
-                    return `${hasBorderRight ? "border-r border-gray-200" : ""} p-0 select-none transition relative  ${cellClass}`;
+                    return `${hasBorderRight ? "border-r border-gray-200" : ""} p-0 select-none transition relative outline-none ${cellClass}`;
                   };
 
                   return (
@@ -530,12 +585,13 @@ export default function TableGrid({
                         }`}>
                       {/* Row Number & Checkbox (Col 0) */}
                       <td
+                        tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "order")}
                         onMouseEnter={() => onCellMouseEnter(row.id, "order")}
                         data-row-id={row.id}
                         data-col-id="order"
-                        className={`border-r border-gray-100 p-0 select-none transition relative ${isCellSelected(row.id, "order") ?
-                          (activeRowId === row.id && activeColumnId === "order" ? "ring-2! ring-blue-600! ring-inset! z-20! bg-blue-50/70!" : "ring-1! ring-blue-300/60! ring-inset! z-10! bg-blue-500/20!")
+                        className={`border-r border-gray-100 p-0 select-none transition relative outline-none ${isCellSelected(row.id, "order") ?
+                          (activeRowId === row.id && activeColumnId === "order" ? "ring-2! ring-blue-600! ring-inset! z-[3]! bg-blue-50/70!" : "ring-1! ring-blue-300/60! ring-inset! z-[2]! bg-blue-500/20!")
                           : (isRowInSelection ? "bg-blue-500/5!" : "")
                           }`}>
                         <div className="h-10 flex items-center gap-1.5 text-xs font-semibold text-gray-500 justify-center px-1">
@@ -556,6 +612,7 @@ export default function TableGrid({
 
                       {/* Week (Col 1) */}
                       <td
+                        tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "week")}
                         onMouseEnter={() => onCellMouseEnter(row.id, "week")}
                         data-row-id={row.id}
@@ -565,40 +622,79 @@ export default function TableGrid({
                           <div className="w-full h-10 text-xs font-medium text-gray-700 flex items-center justify-center">
                             {row.week}
                           </div>
-                          : <div className="flex items-center h-10 px-2 gap-1.5 text-gray-400 w-full">
-                            <div className="flex items-center gap-1 shrink-0">
-                              {/* Edit pencil icon */}
-                              <button
-                                type="button"
-                                className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onEditClick(row);
-                                }}
-                              >
-                                <EditIcon sx={{ fontSize: 14, color: "red" }} />
-                              </button>
-                              {/* Trash icon */}
-                              <button
-                                type="button"
-                                className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDeleteRow(row.id);
-                                }}
-                              >
-                                <DeleteIcon sx={{ fontSize: 14, color: "red" }} />
-                              </button>
-                            </div>
-                            <input
-                              type="text"
-                              value={row.week}
-                              onChange={(e) =>
-                                onWeekChange(row.id, e.target.value)
-                              }
-                              className="w-full h-10 text-xs font-medium text-gray-700 bg-transparent border-0 px-1 focus:ring-0 outline-hidden"
-                            />
-                          </div>
+                          : <ExcelCellEditor
+                            value={row.week}
+                            onChange={(val) => onWeekChange(row.id, val)}
+                            disabled={disabled}
+                            prefix={
+                              <div className="flex items-center gap-1 shrink-0">
+                                {disabled ? (
+                                  <button
+                                    type="button"
+                                    className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onEditClick(row);
+                                    }}
+                                    title="View Row Details"
+                                  >
+                                    <VisibilityIcon sx={{ fontSize: 14, color: "#4B5563" }} />
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEditClick(row);
+                                      }}
+                                      title="Edit Row"
+                                    >
+                                      <EditIcon sx={{ fontSize: 14, color: "red" }} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="w-4 h-4 p-0 flex items-center justify-center cursor-pointer"
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                      }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDeleteRow(row.id);
+                                      }}
+                                      title="Delete Row"
+                                    >
+                                      <DeleteIcon sx={{ fontSize: 14, color: "red" }} />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            }
+                            onExpand={() =>
+                              setCellModalState({
+                                open: true,
+                                rowId: row.id,
+                                colId: "week",
+                                title: columnHeaders.week || "Sample ID",
+                                value: row.week,
+                              })
+                            }
+                            isActive={activeRowId === row.id && activeColumnId === "week"}
+                            onNavigateDown={() => onNavigateCell?.("down")}
+                            onNavigateUp={() => onNavigateCell?.("up")}
+                            onNavigateNext={() => onNavigateNext?.(false)}
+                            onNavigatePrev={() => onNavigateNext?.(true)}
+                          />
                         }
                       </td>
 
@@ -608,6 +704,7 @@ export default function TableGrid({
                         return (
                           <td
                             key={attr.id}
+                            tabIndex={-1}
                             onMouseDown={(e) => onCellMouseDown(e, row.id, attr.id)}
                             onMouseEnter={() => onCellMouseEnter(row.id, attr.id)}
                             data-row-id={row.id}
@@ -617,13 +714,26 @@ export default function TableGrid({
                               <div className="w-full h-10 text-xs font-medium text-gray-700 px-3 flex items-center">
                                 {val}
                               </div>
-                              : <input
-                                type="text"
+                              : <ExcelCellEditor
                                 value={val}
-                                onChange={(e) =>
-                                  onAttrChange(row.id, attr.id, e.target.value)
+                                onChange={(newVal) =>
+                                  onAttrChange(row.id, attr.id, newVal)
                                 }
-                                className="w-full h-10 text-xs font-medium text-gray-700 bg-transparent border-0 px-3 focus:ring-0 outline-hidden"
+                                disabled={disabled}
+                                onExpand={() =>
+                                  setCellModalState({
+                                    open: true,
+                                    rowId: row.id,
+                                    colId: attr.id,
+                                    title: attr.name,
+                                    value: val,
+                                  })
+                                }
+                                isActive={activeRowId === row.id && activeColumnId === attr.id}
+                                onNavigateDown={() => onNavigateCell?.("down")}
+                                onNavigateUp={() => onNavigateCell?.("up")}
+                                onNavigateNext={() => onNavigateNext?.(false)}
+                                onNavigatePrev={() => onNavigateNext?.(true)}
                               />
                             }
                           </td>
@@ -632,6 +742,7 @@ export default function TableGrid({
 
                       {/* Supporting Evidence (Col N+2) */}
                       <td
+                        tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "evidence")}
                         onMouseEnter={() => onCellMouseEnter(row.id, "evidence")}
                         data-row-id={row.id}
@@ -659,6 +770,7 @@ export default function TableGrid({
                               }}
                               compact
                               label=""
+                              disabled={disabled}
                             />
                           </div>
                         }
@@ -666,6 +778,7 @@ export default function TableGrid({
 
                       {/* Assessment Result (Col N+3) */}
                       <td
+                        tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "result")}
                         onMouseEnter={() => onCellMouseEnter(row.id, "result")}
                         data-row-id={row.id}
@@ -689,6 +802,7 @@ export default function TableGrid({
                                 ? "bg-transparent!"
                                 : ""
                                 }`}
+                              disabled={disabled}
                             />
                           </div>
                         )}
@@ -696,6 +810,7 @@ export default function TableGrid({
 
                       {/* Comment (Col N+4) */}
                       <td
+                        tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "comment")}
                         onMouseEnter={() => onCellMouseEnter(row.id, "comment")}
                         data-row-id={row.id}
@@ -705,13 +820,24 @@ export default function TableGrid({
                           <div className="w-full h-10 text-xs font-medium text-gray-700 px-3 flex items-center">
                             {row.comment || ""}
                           </div>
-                          : <input
-                            type="text"
+                          : <ExcelCellEditor
                             value={row.comment || ""}
-                            onChange={(e) =>
-                              onCommentChange(row.id, e.target.value)
+                            onChange={(val) => onCommentChange(row.id, val)}
+                            disabled={disabled}
+                            onExpand={() =>
+                              setCellModalState({
+                                open: true,
+                                rowId: row.id,
+                                colId: "comment",
+                                title: columnHeaders.comment || "Comment",
+                                value: row.comment || "",
+                              })
                             }
-                            className="w-full h-10 text-xs font-medium text-gray-700 bg-transparent border-0 px-3 focus:ring-0 outline-hidden"
+                            isActive={activeRowId === row.id && activeColumnId === "comment"}
+                            onNavigateDown={() => onNavigateCell?.("down")}
+                            onNavigateUp={() => onNavigateCell?.("up")}
+                            onNavigateNext={() => onNavigateNext?.(false)}
+                            onNavigatePrev={() => onNavigateNext?.(true)}
                           />
                         }
                       </td>
@@ -723,6 +849,17 @@ export default function TableGrid({
           </DndContext>
         </div>
       </div>
+
+      {cellModalState?.open && (
+        <CellTextDialog
+          open={cellModalState.open}
+          title={cellModalState.title}
+          initialValue={cellModalState.value}
+          onClose={() => setCellModalState(null)}
+          onSave={handleSaveCellModal}
+          readOnly={disabled}
+        />
+      )}
     </div>
   );
 }
