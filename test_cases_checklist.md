@@ -168,7 +168,7 @@ This document provides a complete, production-grade test suite catalog for the *
 | Test ID | Test Scenario | Preconditions / Input | Test Steps | Expected Result | Priority |
 | :--- | :--- | :--- | :--- | :--- | :---: |
 | **TC-UI-01** | Accordion Expand / Collapse | Table mounted. | Click the Accordion summary bar. | Table collapses / expands smoothly; chevron icon rotates between 0° and -90°. | **P1** |
-| **TC-UI-02** | Sticky Table Header | Table has 100+ rows. | Scroll down vertically. | Table header remains anchored at top (`sticky top-0`, `z-index: 10`); content scrolls beneath cleanly. | **P0** |
+| **TC-UI-02** | Sticky Table Header | Table has 100+ rows; active/selected/editing cells present. | Scroll down vertically. | Table header remains anchored at top (`sticky top-0`, `z-index: 30`); active cells (`z-[3]`), selected range (`z-[2]`), and editing overlays (`z-10`) scroll beneath cleanly without overlapping header. | **P0** |
 | **TC-UI-03** | Sticky Left Order Column | Table has 15+ dynamic columns. | Scroll horizontally to the right. | Column 0 (Row number & checkbox) remains frozen on the left edge. | **P1** |
 | **TC-UI-04** | `maxHeight` boundary compliance | `maxHeight = 600` passed from Power Apps. | Fill table with large number of rows. | Component calculates `tableMaxHeight = maxHeight - 120`; vertical scrollbar appears inside grid; does not overflow container. | **P0** |
 | **TC-UI-05** | Dynamic height reporting (`heightOutput`) | Table expanded vs collapsed. | Toggle accordion or resize table. | Component measures rendered height and emits rounded integer via `heightOutput`. | **P1** |

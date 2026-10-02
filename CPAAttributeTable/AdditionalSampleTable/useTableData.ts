@@ -220,7 +220,7 @@ export function useTableData({
   const handleDirectPaste = useCallback(
     (text: string) => {
       if (disabled) return;
-      const result = processPaste(text, rows, attributes, activeRowId, activeColumnId);
+      const result = processPaste(text, rows, attributes, activeRowId, activeColumnId, evidenceOptions);
 
       if (result.updatedRows) {
         setRows(result.updatedRows);
@@ -240,7 +240,7 @@ export function useTableData({
         });
       }
     },
-    [rows, attributes, activeRowId, activeColumnId, handleImportRows, handleOverrideRows, disabled],
+    [rows, attributes, activeRowId, activeColumnId, evidenceOptions, handleImportRows, handleOverrideRows, disabled],
   );
 
   // Toolbar Paste button handler

@@ -125,8 +125,8 @@ function SortableHeaderCell({
       style={style}
       onMouseEnter={() => setHoveredCol(attr.id)}
       onMouseLeave={() => setHoveredCol(null)}
-      className={`group sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle ${
-        isDragging ? "bg-blue-50/50" : ""
+      className={`group sticky top-0 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle ${
+        isDragging ? "bg-blue-50/50 z-40" : "z-30"
       }`}
     >
       <div className="relative flex flex-col w-full">
@@ -392,14 +392,14 @@ export default function TableGrid({
             <table
               className="min-w-full text-left border-collapse"
               style={{ width: "max-content" }}>
-              <thead>
+              <thead className="bg-gray-50 sticky top-0 z-30">
                 <tr>
                   <th
                     style={{
                       width: formatWidth(columnWidths?.order),
                       minWidth: formatWidth(columnWidths?.order),
                     }}
-                    className="sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 align-middle resize-">
+                    className="sticky top-0 z-30 bg-gray-50 border-b border-r border-gray-200 align-middle resize-">
                     <div className="flex items-center gap-1.5 justify-center">
                       {!disabled && (
                         <button
@@ -445,7 +445,7 @@ export default function TableGrid({
                     }}
                     onMouseEnter={() => setHoveredCol("week")}
                     onMouseLeave={() => setHoveredCol(null)}
-                    className="group sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
+                    className="group sticky top-0 z-30 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
                     <div className="relative flex items-center justify-between w-full">
                       <div className="flex items-center gap-1.5 flex-1 ">
                         <input
@@ -513,7 +513,7 @@ export default function TableGrid({
                       width: formatWidth(columnWidths?.evidence),
                       minWidth: formatWidth(columnWidths?.evidence),
                     }}
-                    className="sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
+                    className="sticky top-0 z-30 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
                     <div className="px-1 py-0.5 text-gray-800 leading-normal select-none">
                       Supporting Evidence per Attribute
                     </div>
@@ -529,7 +529,7 @@ export default function TableGrid({
                       width: formatWidth(columnWidths?.result),
                       minWidth: formatWidth(columnWidths?.result),
                     }}
-                    className="sticky top-0 z-10 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
+                    className="sticky top-0 z-30 bg-gray-50 border-b border-r border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
                     <div className="px-1 py-0.5 text-gray-800 leading-normal select-none">
                       Control Sample Assessment Result (Pass/Fail)
                     </div>
@@ -544,7 +544,7 @@ export default function TableGrid({
                       width: formatWidth(columnWidths?.comment),
                       minWidth: formatWidth(columnWidths?.comment),
                     }}
-                    className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
+                    className="sticky top-0 z-30 bg-gray-50 border-b border-gray-200 px-4 py-3 text-xs font-bold text-gray-700 normal-case tracking-wider align-middle">
                     <div className="px-1 py-0.5 text-gray-800 leading-normal select-none">
                       {columnHeaders.comment}
                     </div>
@@ -568,9 +568,9 @@ export default function TableGrid({
 
                     let cellClass = "";
                     if (isActiveCell) {
-                      cellClass = "ring-2! ring-blue-600! ring-inset! z-20! bg-blue-50/70!";
+                      cellClass = "ring-2! ring-blue-600! ring-inset! z-[3]! bg-blue-50/70!";
                     } else if (isRangeSelected) {
-                      cellClass = "ring-1! ring-blue-300/60! ring-inset! z-10! bg-blue-500/20!";
+                      cellClass = "ring-1! ring-blue-300/60! ring-inset! z-[2]! bg-blue-500/20!";
                     }
 
                     return `${hasBorderRight ? "border-r border-gray-200" : ""} p-0 select-none transition relative outline-none ${cellClass}`;
@@ -591,7 +591,7 @@ export default function TableGrid({
                         data-row-id={row.id}
                         data-col-id="order"
                         className={`border-r border-gray-100 p-0 select-none transition relative outline-none ${isCellSelected(row.id, "order") ?
-                          (activeRowId === row.id && activeColumnId === "order" ? "ring-2! ring-blue-600! ring-inset! z-20! bg-blue-50/70!" : "ring-1! ring-blue-300/60! ring-inset! z-10! bg-blue-500/20!")
+                          (activeRowId === row.id && activeColumnId === "order" ? "ring-2! ring-blue-600! ring-inset! z-[3]! bg-blue-50/70!" : "ring-1! ring-blue-300/60! ring-inset! z-[2]! bg-blue-500/20!")
                           : (isRowInSelection ? "bg-blue-500/5!" : "")
                           }`}>
                         <div className="h-10 flex items-center gap-1.5 text-xs font-semibold text-gray-500 justify-center px-1">

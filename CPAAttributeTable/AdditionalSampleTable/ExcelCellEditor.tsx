@@ -191,7 +191,7 @@ export default function ExcelCellEditor({
           width: "100%",
           minHeight: "40px",
           height: isEditing ? "auto" : "40px",
-          zIndex: isEditing ? 40 : 1,
+          zIndex: isEditing ? 10 : 1,
           backgroundColor: isEditing ? "var(--color-blue-50, #eff6ff)" : "transparent",
           border: "none",
           boxShadow: isEditing

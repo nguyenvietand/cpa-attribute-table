@@ -124,6 +124,82 @@ export function parseTSV(text: string): string[][] {
 }
 
 /**
+ * Filename validation regex:
+ * - Base name cannot be empty and cannot contain forbidden characters: \ / : * ? " < > | \r \n \t
+ * - Must contain a period followed by a file extension of 1 to 10 alphanumeric characters.
+ */
+export const FILENAME_REGEX = /^[^\\/:*?"<>|\r\n\t.]+(\.[^\\/:*?"<>|\r\n\t.]+)*\.[a-zA-Z0-9]{1,10}$/;
+
+export function validateAndNormalizeResult(val: string): {
+  isValid: boolean;
+  normalized: "Pass" | "Fail";
+  error?: string;
+} {
+  const trimmed = (val || "").trim();
+  if (/^pass$/i.test(trimmed)) {
+    return { isValid: true, normalized: "Pass" };
+  }
+  if (/^fail$/i.test(trimmed)) {
+    return { isValid: true, normalized: "Fail" };
+  }
+  return {
+    isValid: false,
+    normalized: "Pass",
+    error: `Invalid Result value: '${val}'. Only 'Pass' or 'Fail' are allowed.`,
+  };
+}
+
+export function validateAndNormalizeEvidence(
+  val: string,
+  evidenceOptions: string[] = []
+): {
+  isValid: boolean;
+  normalized: string;
+  error?: string;
+} {
+  const trimmed = (val || "").trim();
+  if (!trimmed) {
+    return { isValid: true, normalized: "" };
+  }
+
+  // Split by semicolon, trim every part (removes spaces around semicolons and filenames)
+  const parts = trimmed
+    .split(";")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
+  if (parts.length === 0) {
+    return {
+      isValid: false,
+      normalized: "",
+      error: `Evidence value is invalid.`,
+    };
+  }
+
+  const optionSet = new Set(
+    (evidenceOptions || []).map((opt) => opt.trim().toLowerCase()).filter(Boolean)
+  );
+
+  for (const part of parts) {
+    const isMatchingOption = optionSet.has(part.toLowerCase());
+    const isMatchingFilePattern = FILENAME_REGEX.test(part);
+
+    if (!isMatchingOption && !isMatchingFilePattern) {
+      return {
+        isValid: false,
+        normalized: "",
+        error: `Invalid evidence filename format: '${part}'. Files must have a valid extension (e.g. .pdf, .png).`,
+      };
+    }
+  }
+
+  return {
+    isValid: true,
+    normalized: parts.join(";"),
+  };
+}
+
+/**
  * Parses and processes TSV data pasted from the clipboard (e.g. Excel).
  * Pure function mirror of useTableData.ts's handleDirectPaste — no React
  * state, so it can be unit tested directly.
@@ -134,6 +210,7 @@ export function processPaste(
   attributes: Attribute[],
   activeRowId: number | null,
   activeColumnId: string | null,
+  evidenceOptions: string[] = [],
 ): PasteResult {
   if (!text) return {};
 
@@ -187,18 +264,35 @@ export function processPaste(
     if (!isMultiCell) {
       const targetVal = adjustedGrid[0][0];
       const currentTargetColId = columnOrder[startColIdx];
+
+      if (currentTargetColId === "result") {
+        const resCheck = validateAndNormalizeResult(targetVal);
+        if (!resCheck.isValid) {
+          return {
+            message: resCheck.error,
+            severity: "warning",
+          };
+        }
+      } else if (currentTargetColId === "evidence") {
+        const eviCheck = validateAndNormalizeEvidence(targetVal, evidenceOptions);
+        if (!eviCheck.isValid) {
+          return {
+            message: eviCheck.error,
+            severity: "warning",
+          };
+        }
+      }
+
       const updatedRows = rows.map((row, idx) => {
         if (idx !== startRowIdx) return row;
         if (currentTargetColId === "week") {
           return { ...row, week: targetVal };
         } else if (currentTargetColId === "evidence") {
-          return { ...row, evidence: targetVal };
+          const eviCheck = validateAndNormalizeEvidence(targetVal, evidenceOptions);
+          return { ...row, evidence: eviCheck.normalized };
         } else if (currentTargetColId === "result") {
-          let cleanVal: "Pass" | "Fail" = "Pass";
-          if (/^fail$/i.test(targetVal)) {
-            cleanVal = "Fail";
-          }
-          return { ...row, result: cleanVal };
+          const resCheck = validateAndNormalizeResult(targetVal);
+          return { ...row, result: resCheck.normalized };
         } else if (currentTargetColId === "comment") {
           return { ...row, comment: targetVal };
         } else {
@@ -226,6 +320,7 @@ export function processPaste(
     } else {
       const updatedRows = [...rows];
       let nextId = getNextRowId(updatedRows);
+      const warnings: string[] = [];
 
       adjustedGrid.forEach((gridRow, r) => {
         const targetRowIdx = startRowIdx + r;
@@ -255,13 +350,19 @@ export function processPaste(
             if (colId === "week") {
               rowToUpdate.week = cellVal;
             } else if (colId === "evidence") {
-              rowToUpdate.evidence = cellVal;
-            } else if (colId === "result") {
-              let cleanVal: "Pass" | "Fail" = "Pass";
-              if (/^fail$/i.test(cellVal)) {
-                cleanVal = "Fail";
+              const eviCheck = validateAndNormalizeEvidence(cellVal, evidenceOptions);
+              if (eviCheck.isValid) {
+                rowToUpdate.evidence = eviCheck.normalized;
+              } else {
+                warnings.push(`Row ${targetRowIdx + 1} Evidence: '${cellVal}' is invalid`);
               }
-              rowToUpdate.result = cleanVal;
+            } else if (colId === "result") {
+              const resCheck = validateAndNormalizeResult(cellVal);
+              if (resCheck.isValid) {
+                rowToUpdate.result = resCheck.normalized;
+              } else {
+                warnings.push(`Row ${targetRowIdx + 1} Result: '${cellVal}' is invalid`);
+              }
             } else if (colId === "comment") {
               rowToUpdate.comment = cellVal;
             } else {
@@ -278,6 +379,14 @@ export function processPaste(
 
         updatedRows[targetRowIdx] = rowToUpdate;
       });
+
+      if (warnings.length > 0) {
+        return {
+          updatedRows,
+          message: `Pasted with warnings: ${warnings.slice(0, 2).join("; ")}${warnings.length > 2 ? ` (+${warnings.length - 2} more)` : ""}`,
+          severity: "warning",
+        };
+      }
 
       return {
         updatedRows,
@@ -366,6 +475,7 @@ export function processPaste(
   }
 
   const newRowsData: Omit<SampleRow, "id">[] = [];
+  const rowWarnings: string[] = [];
 
   for (let i = dataStartIndex; i < filteredGrid.length; i++) {
     const cells = filteredGrid[i];
@@ -459,21 +569,47 @@ export function processPaste(
       continue;
     }
 
+    // Validate Result
     let cleanResultVal: "Pass" | "Fail" = "Pass";
-    if (/^fail$/i.test(rawResultVal)) {
-      cleanResultVal = "Fail";
+    if (rawResultVal) {
+      const resCheck = validateAndNormalizeResult(rawResultVal);
+      if (resCheck.isValid) {
+        cleanResultVal = resCheck.normalized;
+      } else {
+        rowWarnings.push(`Row ${i + 1} Result: '${rawResultVal}' is invalid, defaulted to 'Pass'`);
+      }
+    }
+
+    // Validate Evidence
+    let cleanEvidenceVal = "";
+    if (rawEvidenceVal) {
+      const eviCheck = validateAndNormalizeEvidence(rawEvidenceVal, evidenceOptions);
+      if (eviCheck.isValid) {
+        cleanEvidenceVal = eviCheck.normalized;
+      } else {
+        rowWarnings.push(`Row ${i + 1} Evidence: '${rawEvidenceVal}' is invalid file format`);
+      }
     }
 
     newRowsData.push({
       week: weekVal,
       attributes: attrRecord,
-      evidence: rawEvidenceVal,
+      evidence: cleanEvidenceVal,
       result: cleanResultVal,
       comment: rawCommentVal,
     });
   }
 
   if (newRowsData.length > 0) {
+    if (rowWarnings.length > 0) {
+      return {
+        newRowsToImport: newRowsData,
+        overrideStartRowId: activeRowId !== null ? activeRowId : undefined,
+        message: `Imported with warnings: ${rowWarnings.slice(0, 2).join("; ")}${rowWarnings.length > 2 ? ` (+${rowWarnings.length - 2} more)` : ""}`,
+        severity: "warning",
+      };
+    }
+
     if (activeRowId !== null) {
       return {
         newRowsToImport: newRowsData,
