@@ -184,6 +184,8 @@ export default function AdditionalSampleTable({
     handleCopyRange,
     moveCellByArrow,
     moveToNextCell,
+    isEditMode,
+    setIsEditMode,
   } = useTableDragDrop({
     rows,
     attributes,
@@ -207,6 +209,7 @@ export default function AdditionalSampleTable({
     isSelecting,
     setIsSelecting,
     containerRef,
+    disabled,
   });
 
   const resolvedMaxHeight = maxHeight ?? DEFAULT_TABLE_CONFIG.maxHeight;
@@ -395,6 +398,8 @@ export default function AdditionalSampleTable({
             selectionRange={selectionRange}
             onNavigateCell={moveCellByArrow}
             onNavigateNext={moveToNextCell}
+            isEditMode={isEditMode}
+            onEditModeChange={setIsEditMode}
             disabled={disabled}
           />
 

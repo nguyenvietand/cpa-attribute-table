@@ -15,6 +15,8 @@ interface ResultSingleSelectProps {
     onChange: (value: string) => void;
     className?: string;
     disabled?: boolean;
+    open?: boolean;
+    onOpenChange?: (nextOpen: boolean) => void;
 }
 
 export default function ResultSingleSelect({
@@ -23,24 +25,38 @@ export default function ResultSingleSelect({
     onChange,
     className = "",
     disabled = false,
+    open,
+    onOpenChange,
 }: ResultSingleSelectProps) {
-    const [isOpen, setIsOpen] = React.useState(false);
+    const [internalOpen, setInternalOpen] = React.useState(false);
+    const isControlled = open !== undefined;
+    const isOpen = isControlled ? Boolean(open) : internalOpen;
     const rootRef = React.useRef<HTMLDivElement | null>(null);
     const dropdownRef = React.useRef<HTMLDivElement | null>(null);
     const [dropdownStyle, setDropdownStyle] = React.useState<React.CSSProperties>({});
+
+    const setOpenState = React.useCallback(
+        (nextOpen: boolean) => {
+            if (!isControlled) {
+                setInternalOpen(nextOpen);
+            }
+            onOpenChange?.(nextOpen);
+        },
+        [isControlled, onOpenChange]
+    );
 
     React.useEffect(() => {
         const handleOutsideClick = (event: MouseEvent) => {
             if (!rootRef.current) return;
             if (dropdownRef.current?.contains(event.target as Node)) return;
             if (!rootRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
+                setOpenState(false);
             }
         };
 
         document.addEventListener("mousedown", handleOutsideClick);
         return () => document.removeEventListener("mousedown", handleOutsideClick);
-    }, []);
+    }, [setOpenState]);
 
     const updateDropdownPosition = React.useCallback(() => {
         if (!rootRef.current) return;
@@ -72,7 +88,7 @@ export default function ResultSingleSelect({
 
     const handleSelect = (selectedValue: string) => {
         onChange(selectedValue);
-        setIsOpen(false);
+        setOpenState(false);
     };
 
     const displayLabel = options.find((o) => o.value === value)?.label || value;
@@ -84,7 +100,7 @@ export default function ResultSingleSelect({
                 onClick={(event) => {
                     event.stopPropagation();
                     if (disabled) return;
-                    setIsOpen(!isOpen);
+                    setOpenState(!isOpen);
                 }}
                 className={`w-full h-full text-left focus:outline-none flex items-center ${
                     disabled ? "cursor-default" : "cursor-pointer"

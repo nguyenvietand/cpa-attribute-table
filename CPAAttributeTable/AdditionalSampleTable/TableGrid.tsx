@@ -72,6 +72,8 @@ interface TableGridProps {
   } | null;
   onNavigateCell?: (direction: "up" | "down" | "left" | "right") => void;
   onNavigateNext?: (reverse?: boolean) => void;
+  isEditMode?: boolean;
+  onEditModeChange?: (isEditing: boolean) => void;
   disabled?: boolean;
 }
 
@@ -239,12 +241,15 @@ export default function TableGrid({
   selectionRange,
   onNavigateCell,
   onNavigateNext,
+  isEditMode = false,
+  onEditModeChange,
   disabled = false,
 }: TableGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const prevRowsLength = useRef(rows.length);
   const [hoveredCol, setHoveredCol] = useState<string | null>(null);
   const [openEvidenceRowId, setOpenEvidenceRowId] = useState<number | null>(null);
+  const [openResultRowId, setOpenResultRowId] = useState<number | null>(null);
   const [cellModalState, setCellModalState] = useState<{
     open: boolean;
     rowId: number;
@@ -325,12 +330,38 @@ export default function TableGrid({
   }, [rows.length]);
 
   useEffect(() => {
+    if (isEditMode && activeRowId !== null) {
+      if (activeColumnId === "evidence") {
+        setOpenEvidenceRowId(activeRowId);
+        setOpenResultRowId(null);
+      } else if (activeColumnId === "result") {
+        setOpenResultRowId(activeRowId);
+        setOpenEvidenceRowId(null);
+      } else {
+        setOpenEvidenceRowId(null);
+        setOpenResultRowId(null);
+      }
+    } else {
+      setOpenEvidenceRowId(null);
+      setOpenResultRowId(null);
+    }
+  }, [isEditMode, activeRowId, activeColumnId]);
+
+  useEffect(() => {
     if (openEvidenceRowId === null) return;
     const stillExists = rows.some((row) => row.id === openEvidenceRowId);
     if (!stillExists) {
       setOpenEvidenceRowId(null);
     }
   }, [rows, openEvidenceRowId]);
+
+  useEffect(() => {
+    if (openResultRowId === null) return;
+    const stillExists = rows.some((row) => row.id === openResultRowId);
+    if (!stillExists) {
+      setOpenResultRowId(null);
+    }
+  }, [rows, openResultRowId]);
 
   const getResultSelectClass = (value: "Pass" | "Fail" | "") => {
     const baseClass =
@@ -615,6 +646,9 @@ export default function TableGrid({
                         tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "week")}
                         onMouseEnter={() => onCellMouseEnter(row.id, "week")}
+                        onDoubleClick={() => {
+                          if (!disabled) onEditModeChange?.(true);
+                        }}
                         data-row-id={row.id}
                         data-col-id="week"
                         className={getCellClass("week")}>
@@ -690,6 +724,8 @@ export default function TableGrid({
                               })
                             }
                             isActive={activeRowId === row.id && activeColumnId === "week"}
+                            isEditing={isEditMode && activeRowId === row.id && activeColumnId === "week"}
+                            onEditChange={onEditModeChange}
                             onNavigateDown={() => onNavigateCell?.("down")}
                             onNavigateUp={() => onNavigateCell?.("up")}
                             onNavigateNext={() => onNavigateNext?.(false)}
@@ -707,6 +743,9 @@ export default function TableGrid({
                             tabIndex={-1}
                             onMouseDown={(e) => onCellMouseDown(e, row.id, attr.id)}
                             onMouseEnter={() => onCellMouseEnter(row.id, attr.id)}
+                            onDoubleClick={() => {
+                              if (!disabled) onEditModeChange?.(true);
+                            }}
                             data-row-id={row.id}
                             data-col-id={attr.id}
                             className={getCellClass(attr.id)}>
@@ -730,6 +769,8 @@ export default function TableGrid({
                                   })
                                 }
                                 isActive={activeRowId === row.id && activeColumnId === attr.id}
+                                isEditing={isEditMode && activeRowId === row.id && activeColumnId === attr.id}
+                                onEditChange={onEditModeChange}
                                 onNavigateDown={() => onNavigateCell?.("down")}
                                 onNavigateUp={() => onNavigateCell?.("up")}
                                 onNavigateNext={() => onNavigateNext?.(false)}
@@ -745,6 +786,12 @@ export default function TableGrid({
                         tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "evidence")}
                         onMouseEnter={() => onCellMouseEnter(row.id, "evidence")}
+                        onDoubleClick={() => {
+                          if (!disabled) {
+                            onEditModeChange?.(true);
+                            setOpenEvidenceRowId(row.id);
+                          }
+                        }}
                         data-row-id={row.id}
                         data-col-id="evidence"
                         style={{
@@ -764,9 +811,15 @@ export default function TableGrid({
                               onChange={(nextValue) => onEvidenceChange(row.id, nextValue)}
                               open={openEvidenceRowId === row.id}
                               onOpenChange={(nextOpen) => {
-                                setOpenEvidenceRowId((prev) =>
-                                  nextOpen ? row.id : prev === row.id ? null : prev,
-                                );
+                                if (nextOpen) {
+                                  onCellMouseDown({ button: 0 } as any, row.id, "evidence");
+                                  onEditModeChange?.(true);
+                                  setOpenEvidenceRowId(row.id);
+                                  setOpenResultRowId(null);
+                                } else {
+                                  setOpenEvidenceRowId(null);
+                                  onEditModeChange?.(false);
+                                }
                               }}
                               compact
                               label=""
@@ -781,6 +834,12 @@ export default function TableGrid({
                         tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "result")}
                         onMouseEnter={() => onCellMouseEnter(row.id, "result")}
+                        onDoubleClick={() => {
+                          if (!disabled) {
+                            onEditModeChange?.(true);
+                            setOpenResultRowId(row.id);
+                          }
+                        }}
                         data-row-id={row.id}
                         data-col-id="result"
                         className={getCellClass("result")}
@@ -798,6 +857,18 @@ export default function TableGrid({
                                 { label: "Fail", value: "Fail", optionClass: "text-red-800" },
                               ]}
                               onChange={(val) => onResultChange(row.id, val as "Pass" | "Fail")}
+                              open={openResultRowId === row.id}
+                              onOpenChange={(nextOpen) => {
+                                if (nextOpen) {
+                                  onCellMouseDown({ button: 0 } as any, row.id, "result");
+                                  onEditModeChange?.(true);
+                                  setOpenResultRowId(row.id);
+                                  setOpenEvidenceRowId(null);
+                                } else {
+                                  setOpenResultRowId(null);
+                                  onEditModeChange?.(false);
+                                }
+                              }}
                               className={`${getResultSelectClass(row.result || "Pass")} ${isCellSelected(row.id, "result") || (activeRowId === row.id && activeColumnId === "result")
                                 ? "bg-transparent!"
                                 : ""
@@ -813,6 +884,9 @@ export default function TableGrid({
                         tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "comment")}
                         onMouseEnter={() => onCellMouseEnter(row.id, "comment")}
+                        onDoubleClick={() => {
+                          if (!disabled) onEditModeChange?.(true);
+                        }}
                         data-row-id={row.id}
                         data-col-id="comment"
                         className={getCellClass("comment", false)}>
@@ -834,6 +908,8 @@ export default function TableGrid({
                               })
                             }
                             isActive={activeRowId === row.id && activeColumnId === "comment"}
+                            isEditing={isEditMode && activeRowId === row.id && activeColumnId === "comment"}
+                            onEditChange={onEditModeChange}
                             onNavigateDown={() => onNavigateCell?.("down")}
                             onNavigateUp={() => onNavigateCell?.("up")}
                             onNavigateNext={() => onNavigateNext?.(false)}
