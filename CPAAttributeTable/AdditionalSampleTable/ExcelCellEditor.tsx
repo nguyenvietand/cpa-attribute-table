@@ -15,6 +15,8 @@ interface ExcelCellEditorProps {
   onNavigateNext?: () => void;
   onNavigatePrev?: () => void;
   disabled?: boolean;
+  isEditing?: boolean;
+  onEditChange?: (isEditing: boolean) => void;
 }
 
 export default function ExcelCellEditor({
@@ -24,22 +26,33 @@ export default function ExcelCellEditor({
   prefix,
   placeholder,
   isActive,
+  isEditing: propIsEditing,
+  onEditChange,
   onNavigateDown,
   onNavigateUp,
   onNavigateNext,
   onNavigatePrev,
   disabled = false,
 }: ExcelCellEditorProps) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [internalIsEditing, setInternalIsEditing] = useState(false);
+  const isControlled = propIsEditing !== undefined;
+  const isEditing = isControlled ? Boolean(isActive && propIsEditing) : internalIsEditing;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const setEditing = (next: boolean) => {
+    if (!isControlled) {
+      setInternalIsEditing(next);
+    }
+    onEditChange?.(next);
+  };
+
   // When cell loses active selection, automatically exit editing
   useEffect(() => {
-    if (!isActive && isEditing) {
-      setIsEditing(false);
+    if (!isActive && !isControlled && internalIsEditing) {
+      setInternalIsEditing(false);
     }
-  }, [isActive, isEditing]);
+  }, [isActive, isControlled, internalIsEditing]);
 
   // Support F2 key to enter edit mode when cell is selected like Excel
   useEffect(() => {
@@ -47,12 +60,12 @@ export default function ExcelCellEditor({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "F2") {
         e.preventDefault();
-        setIsEditing(true);
+        setEditing(true);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isActive, isEditing, disabled]);
+  }, [isActive, isEditing, disabled, setEditing]);
 
   const adjustHeight = () => {
     if (!textareaRef.current) return;
@@ -120,7 +133,9 @@ export default function ExcelCellEditor({
     if (e.key === "Enter" && !e.altKey && !e.ctrlKey) {
       e.preventDefault();
       e.stopPropagation();
-      setIsEditing(false);
+      if (!isControlled) {
+        setInternalIsEditing(false);
+      }
       if (e.shiftKey) {
         onNavigateUp?.();
       } else {
@@ -133,7 +148,9 @@ export default function ExcelCellEditor({
     if (e.key === "Tab") {
       e.preventDefault();
       e.stopPropagation();
-      setIsEditing(false);
+      if (!isControlled) {
+        setInternalIsEditing(false);
+      }
       if (e.shiftKey) {
         onNavigatePrev?.();
       } else {
@@ -146,7 +163,7 @@ export default function ExcelCellEditor({
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
-      setIsEditing(false);
+      setEditing(false);
       const cell = containerRef.current?.closest<HTMLElement>("td[data-row-id]");
       cell?.focus();
       return;
@@ -174,7 +191,7 @@ export default function ExcelCellEditor({
       onDoubleClick={(e) => {
         e.stopPropagation();
         if (disabled) return;
-        setIsEditing(true);
+        setEditing(true);
       }}
       style={{
         position: "relative",
@@ -243,7 +260,7 @@ export default function ExcelCellEditor({
                   return;
                 }
               }
-              setIsEditing(false);
+              setEditing(false);
             }}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
