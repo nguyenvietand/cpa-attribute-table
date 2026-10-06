@@ -17,6 +17,7 @@ interface ResultSingleSelectProps {
     disabled?: boolean;
     open?: boolean;
     onOpenChange?: (nextOpen: boolean) => void;
+    openOnClick?: boolean;
 }
 
 export default function ResultSingleSelect({
@@ -27,6 +28,7 @@ export default function ResultSingleSelect({
     disabled = false,
     open,
     onOpenChange,
+    openOnClick = true,
 }: ResultSingleSelectProps) {
     const [internalOpen, setInternalOpen] = React.useState(false);
     const isControlled = open !== undefined;
@@ -97,16 +99,25 @@ export default function ResultSingleSelect({
         <div ref={rootRef} className="relative w-full h-10">
             <button
                 type="button"
+                draggable={false}
                 onClick={(event) => {
+                    if (openOnClick === false) {
+                        return;
+                    }
                     event.stopPropagation();
                     if (disabled) return;
                     setOpenState(!isOpen);
                 }}
-                className={`w-full h-full text-left focus:outline-none flex items-center ${
+                onDoubleClick={(event) => {
+                    if (disabled) return;
+                    event.stopPropagation();
+                    setOpenState(true);
+                }}
+                className={`w-full h-full text-left focus:outline-none flex items-center select-none ${
                     disabled ? "cursor-default" : "cursor-pointer"
                 } ${className}`}
             >
-                <span className="block w-full truncate">{displayLabel}</span>
+                <span draggable={false} className="block w-full truncate select-none">{displayLabel}</span>
             </button>
 
             {isOpen && createPortal(

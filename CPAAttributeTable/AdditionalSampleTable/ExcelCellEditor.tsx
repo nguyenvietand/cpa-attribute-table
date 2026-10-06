@@ -260,6 +260,11 @@ export default function ExcelCellEditor({
                   return;
                 }
               }
+              // If controlled, only exit editing if this cell is still the active cell
+              // (If we lost active cell due to navigation to another cell, table-level state manages edit mode)
+              if (isControlled && !isActive) {
+                return;
+              }
               setEditing(false);
             }}
             onChange={(e) => onChange(e.target.value)}

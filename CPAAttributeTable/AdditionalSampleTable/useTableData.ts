@@ -499,6 +499,102 @@ export function useTableData({
     }
   };
 
+  // Delete / clear selected cell(s) or range
+  const handleDeleteCells = useCallback(
+    (
+      range?: SelectionRange | null,
+      actRowId?: number | null,
+      actColId?: string | null
+    ) => {
+      if (disabled) return;
+
+      const currentRange =
+        range !== undefined ? range : selectionRange;
+      const currentRowId =
+        actRowId !== undefined ? actRowId : activeRowId;
+      const currentColId =
+        actColId !== undefined ? actColId : activeColumnId;
+
+      const targetRange: SelectionRange | null =
+        currentRange ??
+        (currentRowId !== null && currentColId !== null
+          ? {
+              start: { rowId: currentRowId, colId: currentColId },
+              end: { rowId: currentRowId, colId: currentColId },
+            }
+          : null);
+
+      if (!targetRange) return;
+
+      const { start, end } = targetRange;
+      const startRowIdx = rows.findIndex((r) => r.id === start.rowId);
+      const endRowIdx = rows.findIndex((r) => r.id === end.rowId);
+      if (startRowIdx === -1 || endRowIdx === -1) return;
+
+      const minRow = Math.min(startRowIdx, endRowIdx);
+      const maxRow = Math.max(startRowIdx, endRowIdx);
+
+      const allColumns = [
+        "order",
+        "week",
+        ...attributes.map((a) => a.id),
+        "evidence",
+        "result",
+        "comment",
+      ];
+
+      const startColIdx = allColumns.indexOf(start.colId);
+      const endColIdx = allColumns.indexOf(end.colId);
+      if (startColIdx === -1 || endColIdx === -1) return;
+
+      const minCol = Math.min(startColIdx, endColIdx);
+      const maxCol = Math.max(startColIdx, endColIdx);
+
+      // Collect target colIds excluding "order" (Order is read-only)
+      const targetCols = allColumns.slice(minCol, maxCol + 1).filter((c) => c !== "order");
+      if (targetCols.length === 0) return;
+
+      const targetRowIds = new Set<number>();
+      for (let i = minRow; i <= maxRow; i++) {
+        targetRowIds.add(rows[i].id);
+      }
+
+      setRows((prevRows) =>
+        prevRows.map((row) => {
+          if (!targetRowIds.has(row.id)) return row;
+
+          const updatedRow = { ...row };
+          let updatedAttrs: Record<string, string> | null = null;
+
+          targetCols.forEach((colId) => {
+            if (colId === "week") {
+              updatedRow.week = "";
+            } else if (colId === "evidence") {
+              updatedRow.evidence = "";
+            } else if (colId === "result") {
+              updatedRow.result = "Pass";
+            } else if (colId === "comment") {
+              updatedRow.comment = "";
+            } else {
+              // Dynamic attribute
+              if (!updatedAttrs) {
+                updatedAttrs = { ...updatedRow.attributes };
+              }
+              updatedAttrs[colId] = "";
+            }
+          });
+
+          if (updatedAttrs) {
+            updatedRow.attributes = updatedAttrs;
+          }
+
+          return updatedRow;
+        })
+      );
+    },
+    [disabled, selectionRange, activeRowId, activeColumnId, rows, attributes]
+  );
+
   // Paste a value into a range of rows for the selected attributes
   const handlePasteToRange = (
     fromRow: number,
@@ -636,6 +732,7 @@ export function useTableData({
     handleUpdateAttribute,
     handleReorderAttributes,
     handlePasteToRange,
+    handleDeleteCells,
     handleUpdateColumnHeader,
     handleToolbarPasteClick,
     selectionRange,

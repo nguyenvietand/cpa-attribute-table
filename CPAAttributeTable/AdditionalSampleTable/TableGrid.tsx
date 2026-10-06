@@ -64,7 +64,7 @@ interface TableGridProps {
   activeRowId: number | null;
   activeColumnId: string | null;
   onCellMouseDown: (e: React.MouseEvent, rowId: number, colId: string) => void;
-  onCellMouseEnter: (rowId: number, colId: string) => void;
+  onCellMouseEnter: (e: React.MouseEvent, rowId: number, colId: string) => void;
   isCellSelected: (rowId: number, colId: string) => boolean;
   selectionRange: {
     start: { rowId: number; colId: string };
@@ -618,7 +618,7 @@ export default function TableGrid({
                       <td
                         tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "order")}
-                        onMouseEnter={() => onCellMouseEnter(row.id, "order")}
+                        onMouseEnter={(e) => onCellMouseEnter(e, row.id, "order")}
                         data-row-id={row.id}
                         data-col-id="order"
                         className={`border-r border-gray-100 p-0 select-none transition relative outline-none ${isCellSelected(row.id, "order") ?
@@ -645,7 +645,7 @@ export default function TableGrid({
                       <td
                         tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "week")}
-                        onMouseEnter={() => onCellMouseEnter(row.id, "week")}
+                        onMouseEnter={(e) => onCellMouseEnter(e, row.id, "week")}
                         onDoubleClick={() => {
                           if (!disabled) onEditModeChange?.(true);
                         }}
@@ -742,7 +742,7 @@ export default function TableGrid({
                             key={attr.id}
                             tabIndex={-1}
                             onMouseDown={(e) => onCellMouseDown(e, row.id, attr.id)}
-                            onMouseEnter={() => onCellMouseEnter(row.id, attr.id)}
+                            onMouseEnter={(e) => onCellMouseEnter(e, row.id, attr.id)}
                             onDoubleClick={() => {
                               if (!disabled) onEditModeChange?.(true);
                             }}
@@ -784,8 +784,13 @@ export default function TableGrid({
                       {/* Supporting Evidence (Col N+2) */}
                       <td
                         tabIndex={-1}
-                        onMouseDown={(e) => onCellMouseDown(e, row.id, "evidence")}
-                        onMouseEnter={() => onCellMouseEnter(row.id, "evidence")}
+                        onMouseDown={(e) => {
+                          onCellMouseDown(e, row.id, "evidence");
+                          if (disabled) {
+                            setOpenEvidenceRowId((prev) => (prev === row.id ? null : row.id));
+                          }
+                        }}
+                        onMouseEnter={(e) => onCellMouseEnter(e, row.id, "evidence")}
                         onDoubleClick={() => {
                           if (!disabled) {
                             onEditModeChange?.(true);
@@ -800,40 +805,50 @@ export default function TableGrid({
                           maxWidth: formatWidth(columnWidths?.evidence),
                         }}
                         className={getCellClass("evidence")}>
-                        {selectionMode ?
+                        {selectionMode ? (
                           <div className="w-full h-10 text-xs font-semibold text-gray-700 px-3 flex items-center">
                             {row.evidence}
                           </div>
-                          : <div className="w-full h-10 min-w-0">
+                        ) : (
+                          <div className="w-full h-10 min-w-0">
                             <EvidenceMultiSelect
                               value={row.evidence}
                               options={mergeEvidenceOptions(row.evidence, evidenceOptions)}
                               onChange={(nextValue) => onEvidenceChange(row.id, nextValue)}
-                              open={openEvidenceRowId === row.id}
+                              open={
+                                (isEditMode && activeRowId === row.id && activeColumnId === "evidence" && !disabled) ||
+                                (disabled && openEvidenceRowId === row.id)
+                              }
                               onOpenChange={(nextOpen) => {
                                 if (nextOpen) {
-                                  onCellMouseDown({ button: 0 } as any, row.id, "evidence");
-                                  onEditModeChange?.(true);
-                                  setOpenEvidenceRowId(row.id);
-                                  setOpenResultRowId(null);
+                                  if (disabled) {
+                                    setOpenEvidenceRowId(row.id);
+                                  } else {
+                                    onEditModeChange?.(true);
+                                    setOpenEvidenceRowId(row.id);
+                                    setOpenResultRowId(null);
+                                  }
                                 } else {
                                   setOpenEvidenceRowId(null);
-                                  onEditModeChange?.(false);
+                                  if (!disabled) {
+                                    onEditModeChange?.(false);
+                                  }
                                 }
                               }}
+                              openOnClick={disabled ? true : false}
                               compact
                               label=""
                               disabled={disabled}
                             />
                           </div>
-                        }
+                        )}
                       </td>
 
                       {/* Assessment Result (Col N+3) */}
                       <td
                         tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "result")}
-                        onMouseEnter={() => onCellMouseEnter(row.id, "result")}
+                        onMouseEnter={(e) => onCellMouseEnter(e, row.id, "result")}
                         onDoubleClick={() => {
                           if (!disabled) {
                             onEditModeChange?.(true);
@@ -842,10 +857,15 @@ export default function TableGrid({
                         }}
                         data-row-id={row.id}
                         data-col-id="result"
+                        style={{
+                          width: formatWidth(columnWidths?.result),
+                          minWidth: formatWidth(columnWidths?.result),
+                          maxWidth: formatWidth(columnWidths?.result),
+                        }}
                         className={getCellClass("result")}
                       >
                         {selectionMode ? (
-                          <div className={getResultSelectClass(row.result) + " flex items-center w-full h-full"}>
+                          <div className={getResultSelectClass(row.result) + " flex items-center w-full h-full select-none"}>
                             {row.result || "Pass"}
                           </div>
                         ) : (
@@ -856,23 +876,28 @@ export default function TableGrid({
                                 { label: "Pass", value: "Pass", optionClass: "text-emerald-800" },
                                 { label: "Fail", value: "Fail", optionClass: "text-red-800" },
                               ]}
-                              onChange={(val) => onResultChange(row.id, val as "Pass" | "Fail")}
-                              open={openResultRowId === row.id}
+                              onChange={(val) => {
+                                onResultChange(row.id, val as "Pass" | "Fail");
+                                setOpenResultRowId(null);
+                                onEditModeChange?.(false);
+                              }}
+                              open={isEditMode && activeRowId === row.id && activeColumnId === "result" && !disabled}
                               onOpenChange={(nextOpen) => {
                                 if (nextOpen) {
-                                  onCellMouseDown({ button: 0 } as any, row.id, "result");
-                                  onEditModeChange?.(true);
                                   setOpenResultRowId(row.id);
                                   setOpenEvidenceRowId(null);
+                                  onEditModeChange?.(true);
                                 } else {
                                   setOpenResultRowId(null);
                                   onEditModeChange?.(false);
                                 }
                               }}
-                              className={`${getResultSelectClass(row.result || "Pass")} ${isCellSelected(row.id, "result") || (activeRowId === row.id && activeColumnId === "result")
-                                ? "bg-transparent!"
-                                : ""
-                                }`}
+                              openOnClick={false}
+                              className={`${getResultSelectClass(row.result || "Pass")} ${
+                                isCellSelected(row.id, "result") || (activeRowId === row.id && activeColumnId === "result")
+                                  ? "bg-transparent!"
+                                  : ""
+                              }`}
                               disabled={disabled}
                             />
                           </div>
@@ -883,7 +908,7 @@ export default function TableGrid({
                       <td
                         tabIndex={-1}
                         onMouseDown={(e) => onCellMouseDown(e, row.id, "comment")}
-                        onMouseEnter={() => onCellMouseEnter(row.id, "comment")}
+                        onMouseEnter={(e) => onCellMouseEnter(e, row.id, "comment")}
                         onDoubleClick={() => {
                           if (!disabled) onEditModeChange?.(true);
                         }}

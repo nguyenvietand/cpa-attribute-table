@@ -14,6 +14,7 @@ interface EvidenceMultiSelectProps {
   open?: boolean;
   onOpenChange?: (nextOpen: boolean) => void;
   disabled?: boolean;
+  openOnClick?: boolean;
 }
 
 export default function EvidenceMultiSelect({
@@ -25,6 +26,7 @@ export default function EvidenceMultiSelect({
   open,
   onOpenChange,
   disabled = false,
+  openOnClick = true,
 }: EvidenceMultiSelectProps) {
   const [internalOpen, setInternalOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -114,16 +116,30 @@ export default function EvidenceMultiSelect({
       {label && <div className="text-[11px] text-gray-500 mb-1">{label}</div>}
       <button
         type="button"
+        draggable={false}
         title={disabled ? "Click to view selected files" : undefined}
         onClick={(event) => {
+          if (disabled) {
+            event.stopPropagation();
+            setOpenState(!isOpen);
+            return;
+          }
+          if (openOnClick === false) {
+            return;
+          }
           event.stopPropagation();
           setOpenState(!isOpen);
         }}
-        className={`w-full rounded text-left text-xs text-gray-700 focus:outline-none cursor-pointer ${compact
+        onDoubleClick={(event) => {
+          if (disabled) return;
+          event.stopPropagation();
+          setOpenState(true);
+        }}
+        className={`w-full rounded text-left text-xs text-gray-700 focus:outline-none cursor-pointer select-none ${compact
           ? "h-10 px-3 border-0 bg-transparent"
           : "h-10 px-2.5 border border-gray-300 bg-white focus:border-gray-450"
           } overflow-hidden max-w-full`}>
-        <span className="block w-full truncate pr-5 font-semibold">{displayValue || ""}</span>
+        <span draggable={false} className="block w-full truncate pr-5 font-semibold select-none">{displayValue || ""}</span>
       </button>
 
       {isOpen && createPortal(
