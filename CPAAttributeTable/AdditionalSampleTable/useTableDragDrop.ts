@@ -32,6 +32,7 @@ interface UseTableDragDropProps {
   setIsSelecting: React.Dispatch<React.SetStateAction<boolean>>;
   containerRef?: React.RefObject<HTMLDivElement | null>;
   disabled?: boolean;
+  onDeleteCells?: () => void;
 }
 
 export function useTableDragDrop({
@@ -50,9 +51,9 @@ export function useTableDragDrop({
   setIsSelecting,
   containerRef,
   disabled = false,
+  onDeleteCells,
 }: UseTableDragDropProps) {
   const [isEditMode, setIsEditMode] = useState(false);
-  const dragTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mouseDownInfo = useRef<{
     rowId: number;
     colId: string;
@@ -107,48 +108,6 @@ export function useTableDragDrop({
     [selectionRange, rows, attributes],
   );
 
-  const onCellMouseDown = useCallback(
-    (e: React.MouseEvent, rowId: number, colId: string) => {
-      if (e.button !== 0) return; // Only trigger for left clicks
-      if (e.detail >= 2) return; // Double-clicks should not trigger cell selection or steal focus
-
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
-        return;
-      }
-
-      mouseDownInfo.current = { rowId, colId, event: e };
-
-      if (dragTimer.current) clearTimeout(dragTimer.current);
-
-      dragTimer.current = setTimeout(() => {
-        setIsSelecting(true);
-        setSelectionRange({
-          start: { rowId, colId },
-          end: { rowId, colId },
-        });
-        document.body.style.cursor = "cell";
-        onCellClick(rowId, colId);
-      }, 100);
-    },
-    [setIsSelecting, setSelectionRange, onCellClick],
-  );
-
-  const onCellMouseEnter = useCallback(
-    (rowId: number, colId: string) => {
-      if (isSelecting) {
-        setSelectionRange((prev) => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            end: { rowId, colId },
-          };
-        });
-      }
-    },
-    [isSelecting, setSelectionRange],
-  );
-
   const allColumns = [
     "order",
     "week",
@@ -180,29 +139,72 @@ export function useTableDragDrop({
     });
   }, [containerRef]);
 
-  // Global mouseup and mousedown handlers to manage selection
-  useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      if (dragTimer.current) {
-        clearTimeout(dragTimer.current);
-        dragTimer.current = null;
+  const onCellMouseDown = useCallback(
+    (e: React.MouseEvent, rowId: number, colId: string) => {
+      if (e.button !== 0) return; // Only trigger for left clicks
+      if (e.detail >= 2) return; // Double-clicks should not trigger cell selection or steal focus
+
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
+        return;
       }
 
+      mouseDownInfo.current = { rowId, colId, event: e };
+      setSelectionRange({
+        start: { rowId, colId },
+        end: { rowId, colId },
+      });
+      onCellClick(rowId, colId);
+      focusCell(rowId, colId);
+      setIsEditMode(false);
+    },
+    [setSelectionRange, onCellClick, focusCell, setIsEditMode],
+  );
+
+  const onCellMouseEnter = useCallback(
+    (e: React.MouseEvent, rowId: number, colId: string) => {
+      // If left mouse button is NOT pressed, cancel any active drag selection
+      if (e.buttons !== 1) {
+        if (isSelecting) {
+          setIsSelecting(false);
+          document.body.style.cursor = "";
+        }
+        mouseDownInfo.current = null;
+        return;
+      }
+
+      if (mouseDownInfo.current) {
+        if (!isSelecting) {
+          setIsSelecting(true);
+          document.body.style.cursor = "cell";
+        }
+        setSelectionRange({
+          start: {
+            rowId: mouseDownInfo.current.rowId,
+            colId: mouseDownInfo.current.colId,
+          },
+          end: { rowId, colId },
+        });
+      }
+    },
+    [isSelecting, setIsSelecting, setSelectionRange],
+  );
+
+  // Global mouseup, dragend, and mousedown handlers to manage selection
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
       if (isSelecting) {
         setIsSelecting(false);
         document.body.style.cursor = "";
-      } else if (mouseDownInfo.current) {
-        // Trigger normal cell select on fast click
-        const { rowId, colId } = mouseDownInfo.current;
-        setSelectionRange({
-          start: { rowId, colId },
-          end: { rowId, colId },
-        });
-        onCellClick(rowId, colId);
-        focusCell(rowId, colId);
-        setIsEditMode(false);
       }
+      mouseDownInfo.current = null;
+    };
 
+    const handleGlobalDragEnd = () => {
+      if (isSelecting) {
+        setIsSelecting(false);
+        document.body.style.cursor = "";
+      }
       mouseDownInfo.current = null;
     };
 
@@ -222,13 +224,15 @@ export function useTableDragDrop({
     };
 
     window.addEventListener("mouseup", handleGlobalMouseUp);
+    window.addEventListener("dragend", handleGlobalDragEnd);
     window.addEventListener("mousedown", handleGlobalMouseDown);
 
     return () => {
       window.removeEventListener("mouseup", handleGlobalMouseUp);
+      window.removeEventListener("dragend", handleGlobalDragEnd);
       window.removeEventListener("mousedown", handleGlobalMouseDown);
     };
-  }, [isSelecting, onCellClick, setIsSelecting, setSelectionRange, focusCell, setIsEditMode]);
+  }, [isSelecting, onCellClick, setIsSelecting, setSelectionRange, setIsEditMode]);
 
   const handleCopyRange = useCallback(() => {
     if (!selectionRange) return;
@@ -297,7 +301,9 @@ export function useTableDragDrop({
     setActiveColumnId(colId);
 
     onCellClick(rowId, colId);
-    focusCell(rowId, colId);
+    if (!isEditMode) {
+      focusCell(rowId, colId);
+    }
   }, [
     rows,
     allColumns,
@@ -351,13 +357,16 @@ export function useTableDragDrop({
     setActiveColumnId(colId);
 
     onCellClick(rowId, colId);
-    focusCell(rowId, colId);
+    if (!isEditMode) {
+      focusCell(rowId, colId);
+    }
   }, [
     rows,
     allColumns,
     selectionRange,
     activeRowId,
     activeColumnId,
+    isEditMode,
     setSelectionRange,
     setActiveRowId,
     setActiveColumnId,
@@ -389,9 +398,67 @@ export function useTableDragDrop({
         const hasActiveCell = Boolean(selectionRange || (activeRowId !== null && activeColumnId !== null));
         if (hasActiveCell && !disabled) {
           e.preventDefault();
+          e.stopPropagation();
           setIsEditMode(true);
           return;
         }
+      }
+
+      // Support Space key to open dropdown for evidence / result in Selection Mode
+      if ((e.key === " " || e.key === "Spacebar") && !isEditMode && !disabled) {
+        const currentEnd =
+          selectionRange?.end ??
+          (activeRowId !== null && activeColumnId !== null
+            ? { rowId: activeRowId, colId: activeColumnId }
+            : null);
+        if (currentEnd && (currentEnd.colId === "evidence" || currentEnd.colId === "result")) {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsEditMode(true);
+          return;
+        }
+      }
+
+      // Support Alt + Down to open dropdown for evidence / result
+      if (e.altKey && e.key === "ArrowDown" && !disabled) {
+        const currentEnd =
+          selectionRange?.end ??
+          (activeRowId !== null && activeColumnId !== null
+            ? { rowId: activeRowId, colId: activeColumnId }
+            : null);
+        if (currentEnd && (currentEnd.colId === "evidence" || currentEnd.colId === "result")) {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsEditMode(true);
+          return;
+        }
+      }
+
+      // Handle Delete key (clear selected cell/range content in Selection Mode)
+      if (e.key === "Delete") {
+        if (disabled) return;
+        if (isEditMode) return;
+        if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA")) {
+          return;
+        }
+
+        // Ignore if a dropdown or dialog is open
+        if (
+          document.querySelector('[data-portal-dropdown="true"]') ||
+          document.querySelector('[role="dialog"]') ||
+          document.querySelector('.MuiDialog-root')
+        ) {
+          return;
+        }
+
+        const hasActiveCell = Boolean(selectionRange || (activeRowId !== null && activeColumnId !== null));
+        if (!hasActiveCell) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        onDeleteCells?.();
+        return;
       }
 
       // Handle Tab key for moving to the next/previous cell
@@ -399,6 +466,7 @@ export function useTableDragDrop({
         const hasActiveCell = Boolean(selectionRange || (activeRowId !== null && activeColumnId !== null));
         if (!hasActiveCell) return;
         e.preventDefault();
+        e.stopPropagation();
 
         moveToNextCell(e.shiftKey);
         return;
@@ -409,6 +477,7 @@ export function useTableDragDrop({
         setIsEditMode(false);
         if (document.querySelector('[data-portal-dropdown="true"]')) {
           e.preventDefault();
+          e.stopPropagation();
           document.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
           return;
         }
@@ -446,6 +515,7 @@ export function useTableDragDrop({
         }
 
         e.preventDefault();
+        e.stopPropagation();
         moveCellByArrow(e.shiftKey ? "up" : "down");
         return;
       }
@@ -494,6 +564,7 @@ export function useTableDragDrop({
         }
 
         e.preventDefault();
+        e.stopPropagation();
         if (e.key === "ArrowUp") moveCellByArrow("up");
         else if (e.key === "ArrowDown") moveCellByArrow("down");
         else if (e.key === "ArrowLeft") moveCellByArrow("left");
@@ -574,7 +645,9 @@ export function useTableDragDrop({
     moveCellByArrow,
     containerRef,
     disabled,
+    isEditMode,
     setIsEditMode,
+    onDeleteCells,
   ]);
 
   return {

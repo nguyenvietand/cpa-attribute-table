@@ -136,6 +136,7 @@ export default function AdditionalSampleTable({
     handleUpdateAttribute,
     handleReorderAttributes,
     handlePasteToRange,
+    handleDeleteCells,
     handleUpdateColumnHeader,
     handleToolbarPasteClick,
     handleAddDefaultRow,
@@ -210,6 +211,7 @@ export default function AdditionalSampleTable({
     setIsSelecting,
     containerRef,
     disabled,
+    onDeleteCells: handleDeleteCells,
   });
 
   const resolvedMaxHeight = maxHeight ?? DEFAULT_TABLE_CONFIG.maxHeight;
